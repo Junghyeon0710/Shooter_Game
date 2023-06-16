@@ -31,12 +31,16 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* LookAction;
 
-	void Move(const FInputActionValue& Value); //캐릭터 움직이
+	/** 점프 입력 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* JumpAction;
+
+	void Move(const FInputActionValue& Value); //캐릭터 움직이기
 	void Look(const FInputActionValue& Value); //캐릭터 마우스로 보기
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
+	
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 private:
@@ -45,4 +49,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere)
 	class UCameraComponent* Camera;
+
+	UPROPERTY(VisibleAnywhere ,BlueprintReadOnly,meta=(AllowPrivateAccess ="true"))
+	float BaseTurnRate;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	float BaseLookUpRate;
 };
