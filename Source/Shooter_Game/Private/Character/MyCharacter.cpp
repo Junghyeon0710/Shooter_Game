@@ -6,6 +6,11 @@
 #include "Camera/CameraComponent.h"
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubsystems.h"
+#include <GameFramework/CharacterMovementComponent.h>
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
+#include "Engine/SkeletalMeshSocket.h"
+
 // Sets default values
 AMyCharacter::AMyCharacter() :
 	BaseTurnRate(45.f),
@@ -21,6 +26,18 @@ AMyCharacter::AMyCharacter() :
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm,USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
+
+	// 컴토롤러가 회전할떄 카메라만 움직이기
+	bUseControllerRotationPitch = false;
+	bUseControllerRotationRoll = false;
+	bUseControllerRotationYaw = false;
+
+	//
+	GetCharacterMovement()->bOrientRotationToMovement = true; // 캐릭터가 누른키 방향으로 움직임
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f); //회전율
+	GetCharacterMovement()->JumpZVelocity = 600.f;
+	GetCharacterMovement()->AirControl = 0.2f;
+
 }
 
 // Called when the game starts or when spawned
@@ -55,6 +72,7 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyCharacter::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyCharacter::Look);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &AMyCharacter::Fire);
 	}
 }
 
@@ -83,5 +101,23 @@ void AMyCharacter::Look(const FInputActionValue& Value)
 	{
 		AddControllerYawInput(LookAxisVector.X*BaseTurnRate*GetWorld()->GetDeltaSeconds());
 		AddControllerPitchInput(LookAxisVector.Y*BaseLookUpRate* GetWorld()->GetDeltaSeconds());
+	}
+}
+
+void AMyCharacter::Fire()
+{
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySound2D(this, FireSound);
+	}
+	const USkeletalMeshSocket* Weapon_Socket = GetMesh()->GetSocketByName("Weapon_Socket");
+	if (Weapon_Socket)
+	{
+		const FTransform SocketTransform = Weapon_Socket->GetSocketTransform(GetMesh());
+
+		if (MuzzleFalsh)
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFalsh, SocketTransform);
+		}
 	}
 }

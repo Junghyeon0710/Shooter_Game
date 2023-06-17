@@ -21,7 +21,7 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		bIsInAir = ShooterCharacter->GetCharacterMovement()->IsFalling();
 
 		//캐릭터가 움직이나
-		if (ShooterCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0)
+		if (ShooterCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f)
 		{
 			//업데이트할 때마다 입력 벡터에서 계산된 현재 가속도를 반환합니다.
 

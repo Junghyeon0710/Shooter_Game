@@ -35,8 +35,13 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* JumpAction;
 
+	/** 공격 입력 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* FireAction;
+
 	void Move(const FInputActionValue& Value); //캐릭터 움직이기
-	void Look(const FInputActionValue& Value); //캐릭터 마우스로 보기
+	void Look(const FInputActionValue& Value); //캐릭터 마우스로 보기	
+	void Fire(); //총쏘기
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -55,4 +60,10 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	float BaseLookUpRate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class USoundCue* FireSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UParticleSystem* MuzzleFalsh;
 };

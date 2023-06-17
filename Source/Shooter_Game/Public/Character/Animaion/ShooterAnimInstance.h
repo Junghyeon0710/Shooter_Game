@@ -23,14 +23,14 @@ private:
 	class AMyCharacter* ShooterCharacter;
 
 	/** 캐릭터 스피드*/
-	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Categoty = Movement, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float Speed;
 
 	/** 캐릭터 공중에 있는지*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Categoty = Movement, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	bool bIsInAir;
 
 	/** 캐릭터가 움직이는지*/
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Categoty = Movement, meta = (AllowPrivateAccess = "true"))
-	bool bIsAccelerating;
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	bool bIsAccelerating;//가속도
 };
