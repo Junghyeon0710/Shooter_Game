@@ -33,4 +33,12 @@ private:
 	/** 캐릭터가 움직이는지*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	bool bIsAccelerating;//가속도
+
+	//스트라이핑에 사용되는 오프셋 요
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float MoventOffsetYaw;
+
+	//멈추기전의 움직임
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float LastMoventOffsetYaw;
 };

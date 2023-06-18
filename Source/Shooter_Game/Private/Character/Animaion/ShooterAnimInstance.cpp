@@ -4,6 +4,7 @@
 #include "Character/Animaion/ShooterAnimInstance.h"
 #include <../Public/Character/MyCharacter.h>
 #include <GameFramework/CharacterMovementComponent.h>
+#include "Kismet/KismetMathLibrary.h"
 
 void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 {
@@ -30,6 +31,28 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		else
 		{
 			bIsAccelerating = false;
+		}
+		//Pawn의 조준 회전을 반환합니다.
+		FRotator AimRotation = ShooterCharacter->GetBaseAimRotation();
+
+		//x축의 방향을 빌드
+		FRotator MovementRotation = 
+			UKismetMathLibrary::MakeRotFromX(
+			ShooterCharacter->GetVelocity()); //캐릭터 속도
+
+		//속도에서 회전을 빼주고 정규화
+		MoventOffsetYaw = UKismetMathLibrary::NormalizedDeltaRotator(
+			MovementRotation,
+			AimRotation).Yaw;
+		if (ShooterCharacter->GetVelocity().Size() > 0.f)
+		{
+			LastMoventOffsetYaw = MoventOffsetYaw;
+		}
+	
+
+		if (GEngine)
+		{
+			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::White, FString::Printf(TEXT("Base Aim Rotation: %f"), MoventOffsetYaw));
 		}
 	}
 }

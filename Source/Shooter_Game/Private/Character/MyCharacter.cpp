@@ -10,6 +10,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
 #include "Engine/SkeletalMeshSocket.h"
+#include <DrawDebugHelpers.h>
+#include <Particles/ParticleSystemComponent.h>
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -22,6 +24,7 @@ AMyCharacter::AMyCharacter() :
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
 	SpringArm->SetupAttachment(RootComponent);
 	SpringArm->bUsePawnControlRotation = true; // 폰에 따라 회전
+	SpringArm->SocketOffset = FVector(0.5f, 50.f, 50.f);
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm,USpringArmComponent::SocketName);
@@ -30,11 +33,11 @@ AMyCharacter::AMyCharacter() :
 	// 컴토롤러가 회전할떄 카메라만 움직이기
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
-	bUseControllerRotationYaw = false;
+	bUseControllerRotationYaw = true;
 
 	//
-	GetCharacterMovement()->bOrientRotationToMovement = true; // 캐릭터가 누른키 방향으로 움직임
-	GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f); //회전율
+	GetCharacterMovement()->bOrientRotationToMovement = false; // 캐릭터가 누른키 방향으로 움직임
+	//GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f); //회전율
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
 
@@ -119,5 +122,103 @@ void AMyCharacter::Fire()
 		{
 			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFalsh, SocketTransform);
 		}
+
+		FVector BeamEnd;
+		bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamEnd);
+		if (bBeamEnd)
+		{
+			if (ImpactParticle) //히트지점 파티클
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),
+					ImpactParticle, BeamEnd);
+			}
+
+			if (BeamParticle)
+			{
+				UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
+					GetWorld(), BeamParticle, SocketTransform);
+				if (Beam)
+				{
+					Beam->SetVectorParameter(FName("Target"), BeamEnd);//어디까지 연기가 가게 할건지
+				}
+			}
+		}
+
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && FireMontage)
+		{
+			AnimInstance->Montage_Play(FireMontage);
+			AnimInstance->Montage_JumpToSection(FName("StartFire"));
+		}
 	}
+}
+
+bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation)
+{
+	// 뷰포트의 현재 크기를 가져온다.
+	FVector2D ViewPortSize;
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewPortSize);
+	}
+
+	// 십자선 위치 설정
+	FVector2D CrosshairLocation(ViewPortSize.X / 2.f, ViewPortSize.Y / 2.f);
+	CrosshairLocation.Y -= 50.f;
+	FVector CrosshairWorldPosition;
+	FVector CrosshairWorldDirection;
+
+	//십자선 방향과 위치 파악
+	//화면 공간 위치를 나타내는 FVector2D를 세계 공간 위치를 나타내는 FVector로 변환
+	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
+		UGameplayStatics::GetPlayerController(this, 0),
+		CrosshairLocation,
+		CrosshairWorldPosition,
+		CrosshairWorldDirection);
+
+	//deprojection을 성공했나
+	if (bScreenToWorld)
+	{
+		FHitResult ScreenTraceHit;
+		const FVector Start = CrosshairWorldPosition;
+		//const FQuat Rotation = SocketTransform.GetRotation();
+		//const FVector RotationAxix = Rotation.GetAxisX(); //x축 구해준다
+		const FVector End = CrosshairWorldPosition + CrosshairWorldDirection * 50'000.f;
+
+		// 안개 지점을 라인트레이서 엔드포인터로 저장
+		OutBeamLocation = End;
+
+		//크로스헤어로 트레이스 추적
+		GetWorld()->LineTraceSingleByChannel(ScreenTraceHit,
+			Start, End,
+			ECollisionChannel::ECC_Visibility);
+
+		if (ScreenTraceHit.bBlockingHit) // 맞은게 있다면
+		{
+			//DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f);
+			//DrawDebugPoint(GetWorld(), ScreenTraceHit.Location, 5.f, FColor::Red, false, 5.f);
+
+			//beam 끔점은 현재 맞은 위치
+			OutBeamLocation = ScreenTraceHit.Location;
+
+		}
+
+		//두번째 라인트레이스 총위치에서			
+		FHitResult WeaponTraceHit;
+		const FVector WeaponTraceStart = MuzzleSocketLocation;
+		const FVector WeaponTraceEnd = OutBeamLocation;
+		GetWorld()->LineTraceSingleByChannel(
+			WeaponTraceHit,
+			WeaponTraceStart,
+			WeaponTraceEnd,
+			ECollisionChannel::ECC_Visibility
+		);
+
+		if (WeaponTraceHit.bBlockingHit) //// 총입구에서 발사지점 사이에 물체가 있다면 
+		{
+			OutBeamLocation = WeaponTraceHit.Location;
+		}
+		return true;
+	}
+	return false;
 }

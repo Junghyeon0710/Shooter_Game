@@ -42,6 +42,8 @@ protected:
 	void Move(const FInputActionValue& Value); //캐릭터 움직이기
 	void Look(const FInputActionValue& Value); //캐릭터 마우스로 보기	
 	void Fire(); //총쏘기
+
+	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation);
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -66,4 +68,18 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	class UParticleSystem* MuzzleFalsh;
+
+	/** 히트지점 파티클 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UParticleSystem* ImpactParticle;
+
+	/** 연기흔적 파티클 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UParticleSystem* BeamParticle;
+	
+	/** 총쏘는 몽타주 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UAnimMontage* FireMontage;
+
+	
 };
