@@ -54,6 +54,8 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		{
 			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::White, FString::Printf(TEXT("Base Aim Rotation: %f"), MoventOffsetYaw));
 		}
+
+		bAiming = ShooterCharacter->GetAiming();
 	}
 }
 
