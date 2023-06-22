@@ -63,6 +63,22 @@ protected:
 
 	//크로스헤어 퍼지는거 계산
 	void CalculateCrosshairSpread(float DeltaTime);
+
+	void StartCrosshairBulletFire();
+
+	UFUNCTION()
+	void FinishCrosshairBulletFire();
+
+	void FireButtonPressed();
+	void FireButtonReleased();
+
+	void StartFireTimer();
+
+	UFUNCTION()
+	void AutoFireReset();
+
+	/**라인트레이스가 향한 아이템 아래 크로스헤어 */
+	bool TraceUnderCrosshairs(FHitResult& OutHitResult);
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -146,23 +162,42 @@ private:
 
 	/**크로스헤어 퍼짐을 결정 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
-	float CrosshairSpreadMultiplire;
+	float CrosshairSpreadMultiplire = 0.f;
 
 	/**속도 구성요소 크로스헤어 퍼짐 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
-	float CrosshairVelocityFactor;
+	float CrosshairVelocityFactor = 0.f;
 
 	/**공중에 있을때 크로스헤어 퍼짐 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
-	float CrosshairInAirFactor;
+	float CrosshairInAirFactor = 0.f;
 
 	/**조준 했을때 크로스헤어 퍼짐 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
-	float CrooshairAimFactor;
+	float CrosshairAimFactor =0.f;
 
 	/**총쏘고 있을때 크로스헤어 퍼짐 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Crosshairs, meta = (AllowPrivateAccess = "true"))
-	float CrosshairShootingFactor;
+	float CrosshairShootingFactor =0.f;
+
+	/** 왼쪽 마우스 버튼 누름*/
+	bool bFireButtonPressed = false;
+
+	/*발사할 때 트루  타이머 기다릴때 거짓**/
+	bool bShouldFire = true;
+
+	/**자동 총쏘기 시간 */
+	float AutoAmticFireRate = 0.1f;
+
+	/** 총쏘는 사이 타이머*/
+	FTimerHandle AutoFireTimer;
+
+
+	//총알 발사 타이머 변수
+	float ShootTimeDuration = 0.05f;
+	bool bFiringBullet = false;
+	FTimerHandle CrosshairShootTimer;
+
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 

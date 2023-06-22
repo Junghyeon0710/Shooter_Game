@@ -12,7 +12,8 @@
 #include "Engine/SkeletalMeshSocket.h"
 #include <DrawDebugHelpers.h>
 #include <Particles/ParticleSystemComponent.h>
-
+#include <Item/Item.h>
+#include "Components/WidgetComponent.h"
 // Sets default values
 AMyCharacter::AMyCharacter() :
 	BaseTurnRate(45.f),
@@ -77,7 +78,17 @@ void AMyCharacter::Tick(float DeltaTime)
 	//크로스헤어 퍼짐 계산
 	CalculateCrosshairSpread(DeltaTime);
 	
-	
+	FHitResult ItemTraceResult;
+	TraceUnderCrosshairs(ItemTraceResult);
+	if (ItemTraceResult.bBlockingHit)
+	{
+		AItem* HitItem = Cast<AItem>(ItemTraceResult.GetActor());
+		if (HitItem && HitItem->GetPickupWidget())
+		{
+			HitItem->GetPickupWidget()->SetVisibility(true);
+		}
+
+	}
 }
 
 // Called to bind functionality to input
@@ -90,7 +101,8 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyCharacter::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyCharacter::Look);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ACharacter::Jump);
-		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &AMyCharacter::Fire);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &AMyCharacter::FireButtonPressed);
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AMyCharacter::FireButtonReleased);
 		EnhancedInputComponent->BindAction(AimingAction, ETriggerEvent::Started, this, &AMyCharacter::AimingButtonPressed);
 		EnhancedInputComponent->BindAction(AimingAction, ETriggerEvent::Completed, this, &AMyCharacter::AimingButtonReleased);
 
@@ -186,6 +198,9 @@ void AMyCharacter::Fire()
 			AnimInstance->Montage_JumpToSection(FName("StartFire"));
 		}
 	}
+
+	//Start Bullet fire timer for crosshairs 
+	StartCrosshairBulletFire();
 }
 
 bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation)
@@ -196,7 +211,6 @@ bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVect
 	{
 		GEngine->GameViewport->GetViewportSize(ViewPortSize);
 	}
-
 	// 십자선 위치 설정
 	FVector2D CrosshairLocation(ViewPortSize.X / 2.f, ViewPortSize.Y / 2.f);
 	CrosshairLocation.Y -= 50.f;
@@ -220,6 +234,8 @@ bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVect
 		//const FVector RotationAxix = Rotation.GetAxisX(); //x축 구해준다
 		const FVector End = CrosshairWorldPosition + CrosshairWorldDirection * 50'000.f;
 
+	
+
 		// 안개 지점을 라인트레이서 엔드포인터로 저장
 		OutBeamLocation = End;
 
@@ -230,8 +246,8 @@ bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVect
 
 		if (ScreenTraceHit.bBlockingHit) // 맞은게 있다면
 		{
-			//DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f);
-			//DrawDebugPoint(GetWorld(), ScreenTraceHit.Location, 5.f, FColor::Red, false, 5.f);
+			/*DrawDebugLine(GetWorld(), Start, End, FColor::Red, false, 5.f);
+			DrawDebugPoint(GetWorld(), ScreenTraceHit.Location, 5.f, FColor::Red, false, 5.f);*/
 
 			//beam 끔점은 현재 맞은 위치
 			OutBeamLocation = ScreenTraceHit.Location;
@@ -312,13 +328,151 @@ void AMyCharacter::CalculateCrosshairSpread(float DeltaTime)
 	FVector2D VelocityMultiplierRange(0.f, 1.f);
 	FVector Velocity = GetVelocity();
 	Velocity.Z = 0.f;
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(1, 3.f, FColor::Blue, FString(TEXT("Velocty= %f"), Velocity.Size()));
-	}
+	
 	//[Input:Range] inclusive로 고정된 주어진 값에 대해 [Output:Range] Inclusive에서 해당 백분율을 반환합니다.
 	CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped
 	(WalkSpeddRange, VelocityMultiplierRange,Velocity.Size());
 
-	CrosshairSpreadMultiplire = 0.5f + CrosshairVelocityFactor;
+	// 공중에 있을떄 크로스 헤어
+	if (GetCharacterMovement()->IsFalling()) //공중에 있나
+	{
+		//천천히 크로스헤어가 퍼짐
+		CrosshairInAirFactor = FMath::FInterpTo(
+			CrosshairInAirFactor, 1, DeltaTime, 2.25f);
+	}
+	else //바닥에 닿았으면
+	{
+		//크로스헤어를 빠르게 좁힘
+		CrosshairInAirFactor = FMath::FInterpTo(
+			CrosshairInAirFactor, 0.f, DeltaTime, 30.f);
+	}
+
+	//크로스헤어 조준중일때 계산
+	if (bAiming) //조준중인가
+	{
+		//십자선 축소
+		CrosshairAimFactor = FMath::FInterpTo(
+			CrosshairAimFactor, 0.6f,
+			DeltaTime,
+			30.f);
+	}
+	else // 조준중이 아니면
+	{
+		//십자선 복구
+		CrosshairAimFactor = FMath::FInterpTo(
+			CrosshairAimFactor, 0.f,
+			DeltaTime,
+			30.f);
+	}
+
+	//0.05초뒤에 참
+	if (bFiringBullet)
+	{
+		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor,
+			0.3f, DeltaTime, 60.f);
+	}
+	else
+	{
+		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor,
+			0.f, DeltaTime, 60.f);
+	}
+
+	CrosshairSpreadMultiplire = 
+		0.5f +
+		CrosshairVelocityFactor +
+		CrosshairInAirFactor -
+		CrosshairAimFactor +
+		CrosshairShootingFactor;
+}
+
+void AMyCharacter::StartCrosshairBulletFire()
+{
+	bFiringBullet = true;
+
+	//0.05초뒤에 FinishCrosshairBulletFire함수를 불러옴
+	GetWorldTimerManager().SetTimer(
+		CrosshairShootTimer,
+		this, &AMyCharacter::FinishCrosshairBulletFire, 
+		ShootTimeDuration);
+}
+
+void AMyCharacter::FinishCrosshairBulletFire()
+{
+	bFiringBullet = false;
+	GetWorldTimerManager().ClearTimer(CrosshairShootTimer);
+}
+
+void AMyCharacter::FireButtonPressed()
+{
+	bFireButtonPressed = true;
+	StartFireTimer();
+}
+
+void AMyCharacter::FireButtonReleased()
+{
+	bFireButtonPressed = false;
+}
+
+void AMyCharacter::StartFireTimer()
+{
+	if (bShouldFire)
+	{
+		Fire();
+		bShouldFire = false;
+		GetWorldTimerManager().SetTimer(AutoFireTimer,
+			this,
+			&AMyCharacter::AutoFireReset,
+			AutoAmticFireRate);
+	}
+}
+
+void AMyCharacter::AutoFireReset()
+{
+	bShouldFire = true;
+	if (bFireButtonPressed)
+	{
+		StartFireTimer();
+	}
+}
+
+bool AMyCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult)
+{
+	// 뷰포트의 현재 크기를 가져온다.
+	FVector2D ViewPortSize;
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewPortSize);
+	}
+
+	// 십자선 위치 설정
+	FVector2D CrosshairLocation(ViewPortSize.X / 2.f, ViewPortSize.Y / 2.f);
+	CrosshairLocation.Y -= 50.f;
+	FVector CrosshairWorldPosition;
+	FVector CrosshairWorldDirection;
+
+	//십자선 방향과 위치 파악
+	//화면 공간 위치를 나타내는 FVector2D를 세계 공간 위치를 나타내는 FVector로 변환
+	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
+		UGameplayStatics::GetPlayerController(this, 0),
+		CrosshairLocation,
+		CrosshairWorldPosition,
+		CrosshairWorldDirection);
+
+	if (bScreenToWorld)
+	{
+		//
+		const FVector Start = CrosshairWorldPosition;
+		const FVector End = Start+ CrosshairWorldDirection * 50'000.f;
+
+		//크로스헤어로 트레이스 추적
+		GetWorld()->LineTraceSingleByChannel(OutHitResult,
+			Start, End,
+			ECollisionChannel::ECC_Visibility);
+		if (OutHitResult.bBlockingHit)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

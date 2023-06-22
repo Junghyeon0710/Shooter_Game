@@ -32,6 +32,7 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		{
 			bIsAccelerating = false;
 		}
+
 		//Pawn의 조준 회전을 반환합니다.
 		FRotator AimRotation = ShooterCharacter->GetBaseAimRotation();
 
@@ -50,10 +51,10 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		}
 	
 
-		if (GEngine)
+	/*	if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::White, FString::Printf(TEXT("Base Aim Rotation: %f"), MoventOffsetYaw));
-		}
+		}*/
 
 		bAiming = ShooterCharacter->GetAiming();
 	}
