@@ -43,6 +43,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* AimingAction;
 
+	/** 무기 장착 해제 입력 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* SelectAction;
+
 	void Move(const FInputActionValue& Value); //캐릭터 움직이기
 	void Look(const FInputActionValue& Value); //캐릭터 마우스로 보기	
 
@@ -54,6 +58,9 @@ protected:
 	/** 조준버튼을 눌렀나 안눌렀나*/
 	void AimingButtonPressed();
 	void AimingButtonReleased();
+
+	void SelectButtonPressed();
+	void SelectButtonReleased();
 
 	//카메라 보강
 	void CameraIntrerpZoom(float DeltaTime);
@@ -77,8 +84,20 @@ protected:
 	UFUNCTION()
 	void AutoFireReset();
 
-	/**라인트레이스가 향한 아이템 아래 크로스헤어 */
-	bool TraceUnderCrosshairs(FHitResult& OutHitResult);
+	/**라인트레이스가 향한 십자선 아래 무엇이 있나*/
+	bool TraceUnderCrosshairs(FHitResult& OutHitResult,FVector& OutHitLocation);
+
+	/** 겹친 아이템이 0개보다 많으면*/
+	void TraceForItems();
+
+	/**무기 스폰 */
+	class AWeapon* SpawnDefaultWeapon();
+
+	/**무기 장착 */
+	void EquipWeapon(AWeapon* WeaponToEquip);
+
+	/**무기를 떨어트림 */
+	void DropWeapon();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -198,9 +217,31 @@ private:
 	bool bFiringBullet = false;
 	FTimerHandle CrosshairShootTimer;
 
+	/** 아이템 추적된게 있나*/
+	bool bShouldTraceForItems = false;
+
+	/** 겹친 아이템 갯수*/
+	int8 OverlappedItemCount;
+
+	/** 마지막에 겹친 아이템*/
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = Items, meta =(AllowPrivateAccess = "true"))
+	class AItem* TraceHitItemLastFrame;
+
+	/** 현재 장착 무기*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	class AWeapon* EquipeedWeapon;
+
+	/** 웹폰 클래스*/
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	TSubclassOf<AWeapon> DefaultWeaponClass;
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 
 	UFUNCTION(BlueprintCallable)
 	float GetCrosshairSpreadMultiplier() const;
+
+	FORCEINLINE int8 GetOverlappedItemCOunt() const { return OverlappedItemCount; }
+
+	/** 겹친 아이템 갯수를 더하거나 뺴준다*/
+	void IncrementOverlappedItemCount(int8 Amount);
 };
