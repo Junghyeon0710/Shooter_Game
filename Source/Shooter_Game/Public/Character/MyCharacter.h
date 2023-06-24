@@ -98,6 +98,9 @@ protected:
 
 	/**무기를 떨어트림 */
 	void DropWeapon();
+
+	/**현재 떨어진 무기를 장착 */
+	void SwapWeapon(AWeapon* WeaponToSwap);
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -234,8 +237,21 @@ private:
 	/** 웹폰 클래스*/
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	TSubclassOf<AWeapon> DefaultWeaponClass;
+
+	/** 현재 라인트레이서가 가르키는 아이템(null일수도 있음)*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	AItem* TraceHitItem;
+
+	/** 카메라 앞에 거리 보간*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	float CameraInterpDistance = 250.f;
+
+	/** 카메라 위에 거리 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	float CameraInterpElevation = 65.f;
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
+	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
 
 	UFUNCTION(BlueprintCallable)
 	float GetCrosshairSpreadMultiplier() const;
@@ -244,4 +260,9 @@ public:
 
 	/** 겹친 아이템 갯수를 더하거나 뺴준다*/
 	void IncrementOverlappedItemCount(int8 Amount);
+
+	/** 카메라 앞에 보여줄 무기 위치*/
+	FVector GetCameraInterpLocation();
+
+	void GetPickupItem(AItem* Item);
 };

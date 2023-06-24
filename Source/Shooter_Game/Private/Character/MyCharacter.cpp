@@ -132,6 +132,8 @@ void AMyCharacter::IncrementOverlappedItemCount(int8 Amount)
 	}
 }
 
+
+
 void AMyCharacter::Move(const FInputActionValue& Value)
 {
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -267,8 +269,12 @@ void AMyCharacter::AimingButtonReleased()
 
 void AMyCharacter::SelectButtonPressed()
 {
-	DropWeapon();
-}
+	if (TraceHitItem)
+	{
+		TraceHitItem->StartItemCurve(this);
+	}
+	
+} 
 
 void AMyCharacter::SelectButtonReleased()
 {
@@ -478,22 +484,22 @@ void AMyCharacter::TraceForItems()
 		TraceUnderCrosshairs(ItemTraceResult, hitLocation);
 		if (ItemTraceResult.bBlockingHit)
 		{
-			AItem* HitItem = Cast<AItem>(ItemTraceResult.GetActor());
-			if (HitItem && HitItem->GetPickupWidget())
+			TraceHitItem = Cast<AItem>(ItemTraceResult.GetActor());
+			if (TraceHitItem && TraceHitItem->GetPickupWidget())
 			{
-				HitItem->GetPickupWidget()->SetVisibility(true);
+				TraceHitItem->GetPickupWidget()->SetVisibility(true);
 			}
 			// 마지막에 겹친 아이템이 있는지
 			if (TraceHitItemLastFrame)
 			{
-				if (HitItem != TraceHitItemLastFrame)
+				if (TraceHitItem != TraceHitItemLastFrame)
 				{
 					//히트 아이템이 널이고 마지막 아이템이 다르면 위젯을 꺼줌
 					TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
 				}
 			}
 			// 히트 아이템을 참조
-			TraceHitItemLastFrame = HitItem;
+			TraceHitItemLastFrame = TraceHitItem;
 		}
 	}
 	else if (TraceHitItemLastFrame)
@@ -529,7 +535,7 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip)
 		EquipeedWeapon = WeaponToEquip;
 		//장착한 상태
 		EquipeedWeapon->SetItemState(EItemState::EIS_Equipped);
-
+	
 	}
 }
 
@@ -541,5 +547,34 @@ void AMyCharacter::DropWeapon()
 		EquipeedWeapon->GetItemMesh()->DetachFromComponent(DetachmentTransformRules);
 	
 		EquipeedWeapon->SetItemState(EItemState::EIS_Falling);
+		EquipeedWeapon->ThrowWeapon();
+	}
+}
+
+void AMyCharacter::SwapWeapon(AWeapon* WeaponToSwap)
+{
+	DropWeapon();
+	EquipWeapon(WeaponToSwap);
+	TraceHitItem = nullptr;
+	TraceHitItemLastFrame = nullptr;
+}
+FVector AMyCharacter::GetCameraInterpLocation()
+{
+	const FVector CameraWorldLocation = Camera->GetComponentLocation();
+	const FVector CameraForward = Camera->GetForwardVector();
+
+	//CameraWorldLocation + Forward *A + Up *B
+	return CameraWorldLocation + CameraForward * CameraInterpDistance
+		+ FVector(0.f, 0.f, CameraInterpElevation);
+	
+
+}
+
+void AMyCharacter::GetPickupItem(AItem* Item)
+{
+	auto Weapon = Cast<AWeapon>(Item);
+	if (Weapon)
+	{
+		SwapWeapon(Weapon);
 	}
 }

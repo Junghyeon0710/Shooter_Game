@@ -6,6 +6,7 @@
 #include "Components/WidgetComponent.h"
 #include "Components/SphereComponent.h"
 #include "Character/MyCharacter.h"
+#include "Camera/CameraComponent.h"
 // Sets default values
 AItem::AItem()
 {
@@ -56,7 +57,7 @@ void AItem::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Ot
 		if (ShooterCharaceter)
 		{
 			ShooterCharaceter->IncrementOverlappedItemCount(1);
-			UE_LOG(LogTemp, Warning, TEXT("겹침"));
+	
 		}
 	}
 }
@@ -69,7 +70,6 @@ void AItem::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 		if (ShooterCharaceter)
 		{
 			ShooterCharaceter->IncrementOverlappedItemCount(-1);
-			UE_LOG(LogTemp, Warning, TEXT("나감"));
 		}
 	}
 }
@@ -142,10 +142,26 @@ void AItem::SetItemProperties(EItemState State)
 
 		break;
 	case EItemState::EIS_EquipInterping:
+		PickuWidget->SetVisibility(false);
+		// 아이템 속성 변경
+		ItemMesh->SetSimulatePhysics(false);
+		ItemMesh->SetEnableGravity(false);
+		ItemMesh->SetVisibility(true);
+		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+
+		// 스피어 속성 설정
+		AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+
+		//박스 콜리전 설정
+		CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		break;
 	case EItemState::EIS_PickedUp:
 		break;
 	case EItemState::EIS_Equipped:
+		PickuWidget->SetVisibility(false);
 		// 아이템 속성 변경
 		ItemMesh->SetSimulatePhysics(false);
 		ItemMesh->SetEnableGravity(false);
@@ -194,16 +210,111 @@ void AItem::SetItemProperties(EItemState State)
 	}
 }
 
+void AItem::FinishInterping()
+{
+	bInterping = false;
+	if (Character)
+	{
+		Character->GetPickupItem(this);
+	}
+	//스케일 정상적으로 설정
+	SetActorScale3D(FVector(1.f));
+	
+}
+
 // Called every frame
 void AItem::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	//아이템 보간
+	ItemInterp(DeltaTime);
+}
+
+void AItem::ItemInterp(float DeltaTime)
+{
+	if (!bInterping) return;
+
+	if (Character && ItemZCurve)
+	{
+		//타이머 경과시관을 알려줌
+		const float ElapsedTime = GetWorldTimerManager().GetTimerElapsed(ItemInterpTimer);
+		//경과시간에 따른 커브 값 반환
+		const float CurveValue = ItemZCurve->GetFloatValue(ElapsedTime);
+
+		//아이템 초기 위치 가져오기
+		FVector ItemLocation = ItemInterpStartLocation;
+
+		//카메라 앞 위치 가쳐오기
+		const FVector CameraInterpLocation = Character->GetCameraInterpLocation();
+		
+		// 아이템에서 카메라까지 보간 위치는 백터 X , Y는 0 카메라 Z위치값이랑 아이템 Z위치 값을 빼줌
+		//그러면 아이템에서 카메라 사이에 Z값을 수할 수 있음
+		const FVector ItemToCamera = FVector(0.f, 0.f, (CameraInterpLocation - ItemLocation).Z);
+		//커버값 스케일 곱하기
+		const float DeltaZ = ItemToCamera.Size();
+
+		const FVector CurrentLocation = GetActorLocation();
+		//x값 보간
+		const float InterpXValue = FMath::FInterpTo(
+			CurrentLocation.X, 
+			CameraInterpLocation.X,
+			DeltaTime,
+			30.f);
+		//Y값 보간
+		const float InterpYValue = FMath::FInterpTo(
+			CurrentLocation.Y,
+			CameraInterpLocation.Y,
+			DeltaTime,
+			30.f);
+		// X ,Y 아이템 위치 보간 값
+		ItemLocation.X = InterpXValue;
+		ItemLocation.Y = InterpYValue;
+		//초기위치에 z곡선값 위치를 더해줌
+		ItemLocation.Z += CurveValue * DeltaZ;
+		SetActorLocation(ItemLocation, true, nullptr, ETeleportType::TeleportPhysics);
+	
+		//카레마 회전 
+		const FRotator CameraRotation = Character->GetCamera()->GetComponentRotation();
+		//카메라 회전값이랑 초기 오피셋이랑 더해줌
+		FRotator ItmeRotation(0.f, CameraRotation.Yaw + InterpInitialYawOffset, 0.f);
+		SetActorRotation(ItmeRotation, ETeleportType::TeleportPhysics);
+
+		if (ItemScaleCurve)
+		{
+			const float ScaleCurveValue = ItemScaleCurve->GetFloatValue(ElapsedTime);
+			SetActorScale3D(FVector(ScaleCurveValue, ScaleCurveValue, ScaleCurveValue));
+		}
+	}
 }
 
 void AItem::SetItemState(EItemState State)
 {
 	ItemState = State;
 	SetItemProperties(State);
+}
+
+void AItem::StartItemCurve(AMyCharacter* Char)
+{
+	Character = Char;
+
+	//아이템 초기위치 
+	ItemInterpStartLocation = GetActorLocation();
+	SetItemState(EItemState::EIS_EquipInterping);
+	bInterping = true;
+
+	GetWorldTimerManager().SetTimer(
+		ItemInterpTimer,
+		this, &AItem::FinishInterping,
+		ZCurveTime);
+
+	//초기 Yaw 카메라
+	const float CameraRotationYaw = Character->GetCamera()->GetComponentRotation().Yaw;
+	
+	//초기 Yaw 아이템
+	const float ItmeRotationYaw = GetActorRotation().Yaw;
+
+	// 카메라 아이템 사이의 초기 Yaw 오프셋 
+	InterpInitialYawOffset = ItmeRotationYaw - CameraRotationYaw;
 }
 

@@ -57,6 +57,9 @@ protected:
 
 	/**아이템 속성 설정 */
 	void SetItemProperties(EItemState State);
+
+	/**보간이 끝나면 부르는 함수 */
+	void FinishInterping();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -95,6 +98,46 @@ private:
 	/** 아이템 상태*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	EItemState ItemState = EItemState::EIS_Pickup;
+
+	/** 에셋이 사용할 Z위치에 대해 사용되는 곡선*/
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	class UCurveFloat* ItemZCurve;
+
+	/** 보간이 시작할때 시작 위치*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	FVector ItemInterpStartLocation;
+
+	/** 카메라 앞의 대상 위치*/
+	FVector CameraTargetLocation;
+
+	/**보간을 했나*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	bool bInterping = false;
+
+	/**보간이 시작되면 실행하는 타이머 */
+	FTimerHandle ItemInterpTimer;
+	/**보간 타이머 시간 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	float ZCurveTime =0.7f;
+
+	/** 캐릭터 클래스 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	class AMyCharacter* Character;
+
+	/**아이템 보간 */
+	void ItemInterp(float DeltaTime);
+
+	/** X,Y 보간할때 */
+	float ItemInterpX = 0.f;
+	float ItmeInterpY =0.f;
+
+	//초기 Yaw 위치 보간할때
+	float InterpInitialYawOffset = 0.f;
+	 
+	//보간 시작할떄 커브 값의 사용할 커브
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	UCurveFloat* ItemScaleCurve;
+
 public:
 	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickuWidget; }
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
@@ -102,4 +145,7 @@ public:
 	FORCEINLINE EItemState GetItemState() const { return ItemState; }
 	void SetItemState(EItemState State);
 	FORCEINLINE USkeletalMeshComponent* GetItemMesh() const { return ItemMesh; }
+
+	/**내 캐릭터 클라스를 부름 */
+	void StartItemCurve(AMyCharacter* Char);
 };
