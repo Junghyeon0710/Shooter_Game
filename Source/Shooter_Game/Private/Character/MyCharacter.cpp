@@ -70,6 +70,8 @@ void AMyCharacter::BeginPlay()
 
 	//무기를 스폰하고 장착
 	EquipWeapon(SpawnDefaultWeapon());
+
+	InitializeAmmoMap();
 	
 }
 
@@ -107,7 +109,7 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(AimingAction, ETriggerEvent::Completed, this, &AMyCharacter::AimingButtonReleased);
 		EnhancedInputComponent->BindAction(SelectAction, ETriggerEvent::Started, this, &AMyCharacter::SelectButtonPressed);
 		EnhancedInputComponent->BindAction(SelectAction, ETriggerEvent::Started, this, &AMyCharacter::SelectButtonReleased);
-
+		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &AMyCharacter::ReloadButtonPressed);
 
 
 	}
@@ -175,51 +177,28 @@ void AMyCharacter::Look(const FInputActionValue& Value)
 
 void AMyCharacter::Fire()
 {
-	if (FireSound)
+	if (EquipeedWeapon == nullptr) return;
+	if (CombatState != ECombatState::ECS_Unoccupied) return;
+
+	if (WeaponHasAmmo())
 	{
-		UGameplayStatics::PlaySound2D(this, FireSound);
-	}
-	const USkeletalMeshSocket* Weapon_Socket = GetMesh()->GetSocketByName("Weapon_Socket");
-	if (Weapon_Socket)
-	{
-		const FTransform SocketTransform = Weapon_Socket->GetSocketTransform(GetMesh());
+		//사운드 재생
+		PlayFireSound();
+		//총알 발사
+		SendBullet();
+		//몽타주 재생
+		PlayGunFireMontage();
 
-		if (MuzzleFalsh)
-		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFalsh, SocketTransform);
-		}
+		//총알 뺌
+		EquipeedWeapon->DecremntAmmo();
 
-		FVector BeamEnd;
-		bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamEnd);
-		if (bBeamEnd)
-		{
-			if (ImpactParticle) //히트지점 파티클
-			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),
-					ImpactParticle, BeamEnd);
-			}
+		//총쏘면 에임 벌어짐
+		StartCrosshairBulletFire();
 
-			if (BeamParticle)
-			{
-				UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
-					GetWorld(), BeamParticle, SocketTransform);
-				if (Beam)
-				{
-					Beam->SetVectorParameter(FName("Target"), BeamEnd);//어디까지 연기가 가게 할건지
-				}
-			}
-		}
-
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && FireMontage)
-		{
-			AnimInstance->Montage_Play(FireMontage);
-			AnimInstance->Montage_JumpToSection(FName("StartFire"));
-		}
+		//타이머재생
+		StartFireTimer();
 	}
 
-	//Start Bullet fire timer for crosshairs 
-	StartCrosshairBulletFire();
 }
 
 bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation)
@@ -278,6 +257,35 @@ void AMyCharacter::SelectButtonPressed()
 
 void AMyCharacter::SelectButtonReleased()
 {
+}
+
+void AMyCharacter::ReloadButtonPressed()
+{
+	ReloadWeapon();
+}
+
+void AMyCharacter::ReloadWeapon()
+{
+	if (CombatState != ECombatState::ECS_Unoccupied) return;
+	if (EquipeedWeapon == nullptr) return;
+
+	// 맞는 탄약이 있는지 체크
+	if (CaaryinhAmmo())
+	{
+		CombatState = ECombatState::ECS_Reloading;
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (ReloadMontage && AnimInstance)
+		{
+			AnimInstance->Montage_Play(ReloadMontage);
+			AnimInstance->Montage_JumpToSection(
+				EquipeedWeapon->GetReloadMontageSecion(), ReloadMontage);
+		}
+	}
+}
+
+void AMyCharacter::FinishReloading()
+{
+	CombatState = ECombatState::ECS_Unoccupied;
 }
 
 void AMyCharacter::CameraIntrerpZoom(float DeltaTime)
@@ -401,7 +409,8 @@ void AMyCharacter::FinishCrosshairBulletFire()
 void AMyCharacter::FireButtonPressed()
 {
 	bFireButtonPressed = true;
-	StartFireTimer();
+	Fire();
+	
 }
 
 void AMyCharacter::FireButtonReleased()
@@ -411,24 +420,32 @@ void AMyCharacter::FireButtonReleased()
 
 void AMyCharacter::StartFireTimer()
 {
-	if (bShouldFire)
-	{
-		Fire();
-		bShouldFire = false;
-		GetWorldTimerManager().SetTimer(AutoFireTimer,
-			this,
-			&AMyCharacter::AutoFireReset,
-			AutoAmticFireRate);
-	}
+	CombatState = ECombatState::ECS_FireTimerInProgress;
+
+	GetWorldTimerManager().SetTimer(AutoFireTimer,
+		this,
+		&AMyCharacter::AutoFireReset,
+		AutoAmticFireRate);
+	
 }
 
 void AMyCharacter::AutoFireReset()
 {
-	bShouldFire = true;
-	if (bFireButtonPressed)
+	CombatState = ECombatState::ECS_Unoccupied;
+
+	if (WeaponHasAmmo())
 	{
-		StartFireTimer();
+		if (bFireButtonPressed)
+		{
+			Fire();
+		}
 	}
+	else
+	{
+		//무기 재장전
+		ReloadWeapon();
+	}
+	
 }
 
 bool AMyCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHitLocation)
@@ -557,6 +574,83 @@ void AMyCharacter::SwapWeapon(AWeapon* WeaponToSwap)
 	EquipWeapon(WeaponToSwap);
 	TraceHitItem = nullptr;
 	TraceHitItemLastFrame = nullptr;
+}
+void AMyCharacter::InitializeAmmoMap()
+{
+	AmmoMap.Add(EAmmoType::EAT_9mm, Starting9MMAmmo);
+	AmmoMap.Add(EAmmoType::EAT_AR, StartingARAmmo);
+}
+bool AMyCharacter::WeaponHasAmmo()
+{
+	if (EquipeedWeapon == nullptr) return false;
+
+	return EquipeedWeapon->GetAmmo() > 0;
+}
+void AMyCharacter::PlayFireSound()
+{
+	//사운드 플레이
+	if (FireSound)
+	{
+		UGameplayStatics::PlaySound2D(this, FireSound);
+	}
+}
+void AMyCharacter::SendBullet()
+{
+	//총알 보내기
+	const USkeletalMeshSocket* Weapon_Socket =
+		EquipeedWeapon->GetItemMesh()->GetSocketByName("Weapon_Socket");
+	if (Weapon_Socket)
+	{
+		const FTransform SocketTransform = Weapon_Socket->GetSocketTransform(EquipeedWeapon->GetItemMesh());
+
+		if (MuzzleFalsh)
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFalsh, SocketTransform);
+		}
+
+		FVector BeamEnd;
+		bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamEnd);
+		if (bBeamEnd)
+		{
+			if (ImpactParticle) //히트지점 파티클
+			{
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),
+					ImpactParticle, BeamEnd);
+			}
+
+			if (BeamParticle)
+			{
+				UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
+					GetWorld(), BeamParticle, SocketTransform);
+				if (Beam)
+				{
+					Beam->SetVectorParameter(FName("Target"), BeamEnd);//어디까지 연기가 가게 할건지
+				}
+			}
+		}
+	}
+}
+void AMyCharacter::PlayGunFireMontage()
+{
+	// 애니메이션 플레이
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && FireMontage)
+	{
+		AnimInstance->Montage_Play(FireMontage);
+		AnimInstance->Montage_JumpToSection(FName("StartFire"));
+	}
+}
+bool AMyCharacter::CaaryinhAmmo()
+{
+	if (EquipeedWeapon == nullptr) return false;
+
+	auto AmmoType = EquipeedWeapon->GetAmmoType();
+
+	if (AmmoMap.Contains(AmmoType)) //포함 여부를 확인
+	{
+		return AmmoMap[AmmoType] > 0;
+	}
+	return false;
 }
 FVector AMyCharacter::GetCameraInterpLocation()
 {

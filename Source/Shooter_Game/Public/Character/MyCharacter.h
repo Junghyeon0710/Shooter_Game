@@ -5,7 +5,19 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "InputActionValue.h"
+#include "../AmmoType.h"
 #include "MyCharacter.generated.h"
+
+
+UENUM(BlueprintType)
+enum class ECombatState : uint8
+{
+	ECS_Unoccupied UMETA(Display = "Unoccupied"),
+	ECS_FireTimerInProgress UMETA(Display = "FireTimerInProgress"),
+	ECS_Reloading UMETA(Display = "Reloading"),
+
+	ECS_Max UMETA(Display = "DefaultMax")
+};
 
 UCLASS()
 class SHOOTER_GAME_API AMyCharacter : public ACharacter
@@ -47,6 +59,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* SelectAction;
 
+	/** 무기 재장전 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* ReloadAction;
+
 	void Move(const FInputActionValue& Value); //캐릭터 움직이기
 	void Look(const FInputActionValue& Value); //캐릭터 마우스로 보기	
 
@@ -62,6 +78,13 @@ protected:
 	void SelectButtonPressed();
 	void SelectButtonReleased();
 
+	//R키 눌렀나
+	void ReloadButtonPressed();
+	//무기 재장전
+	void ReloadWeapon();
+	UFUNCTION(BlueprintCallable)
+	void FinishReloading();
+
 	//카메라 보강
 	void CameraIntrerpZoom(float DeltaTime);
 
@@ -71,6 +94,7 @@ protected:
 	//크로스헤어 퍼지는거 계산
 	void CalculateCrosshairSpread(float DeltaTime);
 
+	//총솔떄 크로스헤어 퍼짐
 	void StartCrosshairBulletFire();
 
 	UFUNCTION()
@@ -101,6 +125,21 @@ protected:
 
 	/**현재 떨어진 무기를 장착 */
 	void SwapWeapon(AWeapon* WeaponToSwap);
+
+	/**총알 맵 ,총알값 초기화  */
+	void InitializeAmmoMap();
+
+	/**총이 총알을 갖고있는가 */
+	bool WeaponHasAmmo();
+
+	void PlayFireSound();
+
+	void SendBullet();
+
+	void PlayGunFireMontage();
+
+	//장착된 무기 종류의 탄약이 있는지
+	bool CaaryinhAmmo();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -164,6 +203,10 @@ private:
 	/** 총쏘는 몽타주 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	class UAnimMontage* FireMontage;
+
+	/** 재장전 몽타주 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UAnimMontage* ReloadMontage;
 
 	/** 조준하고 있냐 참거짓*/
 	UPROPERTY(visibleAnywhere, BlueprintReadOnly,Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -249,6 +292,21 @@ private:
 	/** 카메라 위에 거리 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	float CameraInterpElevation = 65.f;
+
+	/** Map 선언 EAmmoType에 따라 총알이 다름 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	TMap<EAmmoType, int32> AmmoMap;
+
+	/** 9mm 처음 총알 갯수 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	int32 Starting9MMAmmo = 85;
+
+	/** AR 처음 총알 갯수 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	int32 StartingARAmmo = 120;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	ECombatState CombatState = ECombatState::ECS_Unoccupied;
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }

@@ -45,6 +45,18 @@ void AWeapon::ThrowWeapon()
 		ThrowWeaponTimer, this, &AWeapon::StopFalling, ThrowWeaponTime);
 }
 
+void AWeapon::DecremntAmmo()
+{
+	if (Ammo - 1 <= 0)
+	{
+		Ammo = 0;
+	}
+	else
+	{
+		--Ammo;
+	}
+}
+
 void AWeapon::StopFalling()
 {
 	bFalling = false;
