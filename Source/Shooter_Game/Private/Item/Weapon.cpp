@@ -57,6 +57,12 @@ void AWeapon::DecremntAmmo()
 	}
 }
 
+void AWeapon::ReloadAmmo(int32 Amount)
+{
+	checkf(Ammo + Amount <= MagzineCapacity, TEXT("탄창이 없습니다.!"));
+	Ammo += Amount;
+}
+
 void AWeapon::StopFalling()
 {
 	bFalling = false;

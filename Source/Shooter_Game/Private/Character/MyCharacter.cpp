@@ -47,6 +47,8 @@ AMyCharacter::AMyCharacter() :
 	GetCharacterMovement()->JumpZVelocity = 600.f;
 	GetCharacterMovement()->AirControl = 0.2f;
 
+	HandSceneCOmponet = CreateDefaultSubobject<USceneComponent>(TEXT("HandSceneComp"));
+
 }
 
 // Called when the game starts or when spawned
@@ -113,6 +115,30 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 
 	}
+}
+
+void AMyCharacter::GrabClip()
+{
+	if (EquipeedWeapon == nullptr || HandSceneCOmponet == nullptr) return;
+
+	//탄약 인덱스
+	int32 ClipBoneIndex = 
+		EquipeedWeapon->GetItemMesh()->GetBoneIndex(EquipeedWeapon->GetClipBoneName());
+
+	/** 잡기 시작할 떄 트랜스폼*/
+	ClipTransForm = EquipeedWeapon->GetItemMesh()->GetBoneTransform(ClipBoneIndex);
+
+	FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepRelative, true);
+	HandSceneCOmponet->AttachToComponent(GetMesh(), AttachmentRules, FName(TEXT("Hand_L")));
+	HandSceneCOmponet->SetWorldTransform(ClipTransForm);
+
+	EquipeedWeapon->SetMovingClip(true);
+
+}
+
+void AMyCharacter::ReleaseClip()
+{
+	EquipeedWeapon->SetMovingClip(false);
 }
 
 float AMyCharacter::GetCrosshairSpreadMultiplier() const
@@ -285,7 +311,33 @@ void AMyCharacter::ReloadWeapon()
 
 void AMyCharacter::FinishReloading()
 {
+
 	CombatState = ECombatState::ECS_Unoccupied;
+	if (EquipeedWeapon == nullptr) return;
+
+	const auto AmmoType = EquipeedWeapon->GetAmmoType();
+	if (AmmoMap.Contains(AmmoType))
+	{
+		//캐릭터가 가지고있는 장비 유형의 탄약
+		int32 CarriedAmmo = AmmoMap[AmmoType];
+
+		const int32 MagEmptySpace =
+			EquipeedWeapon->GetMagazineCapacity() - 
+			EquipeedWeapon->GetAmmo();
+
+		if (MagEmptySpace > CarriedAmmo)
+		{
+			EquipeedWeapon->ReloadAmmo(CarriedAmmo);
+			CarriedAmmo = 0;
+			AmmoMap.Add(AmmoType, CarriedAmmo);
+		}
+		else
+		{
+			EquipeedWeapon->ReloadAmmo(MagEmptySpace);
+			CarriedAmmo -= MagEmptySpace;
+			AmmoMap.Add(AmmoType, CarriedAmmo);
+		}
+	}
 }
 
 void AMyCharacter::CameraIntrerpZoom(float DeltaTime)

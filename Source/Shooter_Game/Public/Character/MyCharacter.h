@@ -307,6 +307,22 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	ECombatState CombatState = ECombatState::ECS_Unoccupied;
+
+	//에니메이션 블루프린트가 클립을 잡으면 실행시키는 notify
+	UFUNCTION(BlueprintCallable)
+	void GrabClip();
+
+	//에니메이션 블루프린트가 클립을 재장착 실행시키는 notify
+	UFUNCTION(BlueprintCallable)
+	void ReleaseClip();
+
+	/**탄약 트렌스폼 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	FTransform ClipTransForm;
+
+	/**재장전 하든동안 캐릭터 손에 부착할 신 컴포넌트 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	USceneComponent* HandSceneCOmponet;
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }

@@ -35,7 +35,11 @@ private:
 	bool bFalling=false;
 
 	UPROPERTY(EditAnywhere,BlueprintReadWrite,Category = "weapon",meta=(AllowprivateAccess="true"))
-	int32 Ammo = 0;
+	int32 Ammo = 30;
+
+	/** 탄약 최대치 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "weapon", meta = (AllowprivateAccess = "true"))
+	int32 MagzineCapacity =30;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "weapon", meta = (AllowprivateAccess = "true"))
 	EWeaponType WeaponType = EWeaponType::EWT_SubmachineGun;
@@ -46,10 +50,17 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "weapon", meta = (AllowprivateAccess = "true"))
 	FName ReloadMontageSecion = "Reload";
+
+	/**클립을 이동할 떄 트루  */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "weapon", meta = (AllowprivateAccess = "true"))
+	bool bMovingClip = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "weapon", meta = (AllowprivateAccess = "true"))
+	FName ClipBoneName = "smg_clip";
 public:
 	void ThrowWeapon();
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
-
+	FORCEINLINE int32 GetMagazineCapacity() const { return MagzineCapacity; }
 	//총을 쏠때 캐릭터 클래스를 부름 ,총알 감소
 	void DecremntAmmo();
 
@@ -58,5 +69,9 @@ public:
 
 	FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }
 	FORCEINLINE FName GetReloadMontageSecion() const { return ReloadMontageSecion; }
+	FORCEINLINE FName GetClipBoneName() const { return ClipBoneName; }
 
+	void ReloadAmmo(int32 Amount);
+
+	FORCEINLINE void SetMovingClip(bool Move) { bMovingClip = Move; }
 };
