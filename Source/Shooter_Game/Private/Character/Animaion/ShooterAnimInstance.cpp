@@ -58,9 +58,54 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 
 		bAiming = ShooterCharacter->GetAiming();
 	}
+	TurnInPlace();
 }
 
 void UShooterAnimInstance::NativeInitializeAnimation()
 {
 	ShooterCharacter = Cast<AMyCharacter>(TryGetPawnOwner());
+}
+
+void UShooterAnimInstance::TurnInPlace()
+{
+	if (ShooterCharacter == nullptr) return;
+
+	if (Speed > 0)
+	{
+		// 돌 필요가 없다
+	}
+	else
+	{
+		CharacterYawLastFrame = CharacaterYaw;
+		CharacaterYaw = ShooterCharacter->GetActorRotation().Yaw;
+		const float YawDelta = CharacaterYaw - CharacterYawLastFrame;
+
+		//루트 yaw offset, -180 , 180 사이
+		// 각도를 (-180, 180] 범위로 고정합니다. (NormalizeAxis)
+		RootYawOffset = UKismetMathLibrary::NormalizeAxis(RootYawOffset - YawDelta);
+
+		const float Turning = GetCurveValue(TEXT("Turning"));
+		if (Turning > 0)
+		{
+			RotationCurveValueLastFrame = RotationCurve;
+			RotationCurve = GetCurveValue(TEXT("Rotation"));
+			const float DeltaRotiation = RotationCurve - RotationCurveValueLastFrame;
+			
+			// RootYawOffset > 0 -> 왼쪽으로 회전 , RootYawOffset <0, ->오른쪽으로 회전
+			RootYawOffset > 0 ? RootYawOffset -= DeltaRotiation : RootYawOffset += DeltaRotiation;
+	
+			
+			const float ABSRootyawOffset = FMath::Abs(RootYawOffset);
+			if (ABSRootyawOffset > 90.f)
+			{
+				const float YawExcess = ABSRootyawOffset - 90.f;
+				RootYawOffset > 0 ? RootYawOffset -= YawExcess : RootYawOffset += YawExcess;
+			}
+			UE_LOG(LogTemp,Warning,TEXT("RotationCurveValueLastFrame : %f", RotationCurveValueLastFrame));
+			UE_LOG(LogTemp, Warning, TEXT("RotationCurve : %f", RotationCurve));
+			UE_LOG(LogTemp, Warning, TEXT("RootYawOffset : %f", RootYawOffset));
+		}
+		if (GEngine) GEngine->AddOnScreenDebugMessage(1, -1,
+			FColor::Red, FString::Printf(TEXT("RotationCurveValueLastFrame : %f"), RotationCurveValueLastFrame));
+	}
 }

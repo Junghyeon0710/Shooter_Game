@@ -323,7 +323,8 @@ private:
 	/**재장전 하든동안 캐릭터 손에 부착할 신 컴포넌트 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	USceneComponent* HandSceneCOmponet;
-public:
+
+	public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
 

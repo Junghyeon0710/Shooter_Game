@@ -127,7 +127,7 @@ void AMyCharacter::GrabClip()
 
 	/** 잡기 시작할 떄 트랜스폼*/
 	ClipTransForm = EquipeedWeapon->GetItemMesh()->GetBoneTransform(ClipBoneIndex);
-
+	
 	FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepRelative, true);
 	HandSceneCOmponet->AttachToComponent(GetMesh(), AttachmentRules, FName(TEXT("Hand_L")));
 	HandSceneCOmponet->SetWorldTransform(ClipTransForm);
@@ -277,6 +277,11 @@ void AMyCharacter::SelectButtonPressed()
 	if (TraceHitItem)
 	{
 		TraceHitItem->StartItemCurve(this);
+
+		if (TraceHitItem->GetPickupSound())
+		{
+			UGameplayStatics::PlaySound2D(this, TraceHitItem->GetPickupSound());
+		}
 	}
 	
 } 
@@ -718,6 +723,10 @@ FVector AMyCharacter::GetCameraInterpLocation()
 
 void AMyCharacter::GetPickupItem(AItem* Item)
 {
+	if (Item->GetEquipSound())
+	{
+		UGameplayStatics::PlaySound2D(this, Item->GetEquipSound());
+	}
 	auto Weapon = Cast<AWeapon>(Item);
 	if (Weapon)
 	{
