@@ -112,6 +112,7 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(SelectAction, ETriggerEvent::Started, this, &AMyCharacter::SelectButtonPressed);
 		EnhancedInputComponent->BindAction(SelectAction, ETriggerEvent::Started, this, &AMyCharacter::SelectButtonReleased);
 		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &AMyCharacter::ReloadButtonPressed);
+		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AMyCharacter::CrouchingPressed);
 
 
 	}
@@ -301,7 +302,7 @@ void AMyCharacter::ReloadWeapon()
 	if (EquipeedWeapon == nullptr) return;
 
 	// 맞는 탄약이 있는지 체크
-	if (CaaryinhAmmo())
+	if (CaaryinhAmmo() && !EquipeedWeapon->ClipIsFull())
 	{
 		CombatState = ECombatState::ECS_Reloading;
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
@@ -343,6 +344,15 @@ void AMyCharacter::FinishReloading()
 			AmmoMap.Add(AmmoType, CarriedAmmo);
 		}
 	}
+}
+
+void AMyCharacter::CrouchingPressed()
+{
+	if (!GetCharacterMovement()->IsFalling())
+	{
+		bCrouching = !bCrouching;
+	}
+	UE_LOG(LogTemp, Warning, TEXT("1"));
 }
 
 void AMyCharacter::CameraIntrerpZoom(float DeltaTime)

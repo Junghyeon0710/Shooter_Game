@@ -6,6 +6,16 @@
 #include "Animation/AnimInstance.h"
 #include "ShooterAnimInstance.generated.h"
 
+UENUM(BlueprintType)
+enum class EOffsetState : uint8
+{
+	EOS_Aiming UMETA(DisplayName = "Aiming"),
+	EOS_Hip UMETA(DisplayName = "Hip"),
+	EOS_Reloading UMETA(DisplayName = "Reloading"),
+	EOS_InAir UMETA(DisplayName = "InAir"),
+
+	EOS_Max UMETA(DisplayName = "DefaultMax")
+};
 /**
  * 
  */
@@ -20,8 +30,11 @@ public:
 	virtual void NativeInitializeAnimation() override;
 protected:
 
-	/** */
+	/** 자리에서 돌았나 */
 	void TurnInPlace();
+	
+	/**달릴 때 기울리는걸 계산 */
+	void Lean(float DeltaTime);
 private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 		class AMyCharacter* ShooterCharacter;
@@ -50,11 +63,11 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	bool bAiming = false;
 	
-	/**캐릭터 Yaw */
-	float CharacaterYaw = 0.f;
+	/**캐릭터 Yaw ,가만히 있을때 업데이트 됨 ,Turn In Plac 함수*/
+	float TICCharacaterYaw = 0.f;
 
-	//캐릭터 마지막 프리엠 Yaw
-	float CharacterYawLastFrame = 0.f;
+	//캐릭터 마지막 프레임 Yaw 가만히 있을때 업데이트 됨 ,Turn In Plac 함수
+	float TICCharacterYawLastFrame = 0.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
 	float RootYawOffset = 0.f;
@@ -64,5 +77,30 @@ private:
 
 	// 프레임에 마지막 로테이션 커브값
 	float RotationCurveValueLastFrame;
+
+	/** 에임이 향하는 Pitch*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
+	float Pitch = 0.f;
+
+	/** 리로딩중*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
+	bool bReloading = false;
+
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
+	EOffsetState OffsetState = EOffsetState::EOS_Hip;
+
+	//캐릭터 지금 Yaw
+	FRotator CharacterYaw = FRotator(0.f);
+
+	//캐릭터 마지막 Yaw
+	FRotator CharacterYawLastFrame = FRotator(0.f);
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Lean, meta = (AllowPrivateAccess = "true"))
+	float YawDelta =0.f;
+
+	// 웅크리고 앉았나
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Crouching, meta = (AllowPrivateAccess = "true"))
+	bool bCrouching = false;
 
 };

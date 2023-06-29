@@ -63,6 +63,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* ReloadAction;
 
+	/** 웅크리기 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* CrouchAction;
+
 	void Move(const FInputActionValue& Value); //캐릭터 움직이기
 	void Look(const FInputActionValue& Value); //캐릭터 마우스로 보기	
 
@@ -84,6 +88,10 @@ protected:
 	void ReloadWeapon();
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
+
+	//시프트키 누르면 웅크림
+
+	void CrouchingPressed();
 
 	//카메라 보강
 	void CameraIntrerpZoom(float DeltaTime);
@@ -324,6 +332,10 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	USceneComponent* HandSceneCOmponet;
 
+	/**  웅크리면 진실 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	bool bCrouching = false;
+
 	public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
@@ -340,4 +352,7 @@ private:
 	FVector GetCameraInterpLocation();
 
 	void GetPickupItem(AItem* Item);
+	
+	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
+	FORCEINLINE bool GetCrouching() const { return bCrouching; }
 };
