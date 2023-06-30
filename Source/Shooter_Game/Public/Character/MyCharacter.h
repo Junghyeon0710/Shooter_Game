@@ -72,6 +72,7 @@ protected:
 
 	void Fire(); //총쏘기
 
+	virtual void Jump() override;
 
 	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation);
 
@@ -148,6 +149,9 @@ protected:
 
 	//장착된 무기 종류의 탄약이 있는지
 	bool CaaryinhAmmo();
+
+	//서거나 앉을때 캡슐 높이 보간 
+	void InterpCapsuleHalfHeight(float DeltaTime);
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -221,12 +225,15 @@ private:
 	bool bAiming = false;
 
 	/** 기본 카메라 화면 뷰 값*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float CameraDefaultFOV = 0;
 
 	/** 카메라 확대했을때 줌 값*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float CameraZoomedFOV = 35.f;
 
 	/** 현재 시야*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float CameraCurrentFOV = 0.f;
 
 	/** 조준 확대 속도*/
@@ -336,7 +343,34 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	bool bCrouching = false;
 
-	public:
+	/**  기본 걷기 속도 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	float BaseMovementSpeed = 600.f;
+
+	/**  앉았을때 걷기 속도 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	float CrouchMovementSpeed = 250.f;
+
+	/**현재 캡슐 높이 */
+	float CurrentCapsulHalfHeight= 88.f;
+
+	/**서있을때 캡슐 높이 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float StandingCapsuleHalfHeight = 88.f;
+
+	/**앉았을때 캡슐 half높이 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float CrouchCapsulHalfHeight =44.f;
+
+	/**기본 멈출때 미끄러지는정도 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float BaseGroundFriction =2.f;
+
+	/** 앉았을 때 멈출때 미끄러지는정도 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float CrouchGroundFriction  = 100.f;
+
+public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
 

@@ -94,6 +94,7 @@ void UShooterAnimInstance::TurnInPlace()
 
 	if (Speed > 0 || bIsInAir)
 	{
+		
 		// 돌 필요가 없다
 		RootYawOffset = 0.f;
 		TICCharacaterYaw = ShooterCharacter->GetActorRotation().Yaw;
@@ -114,24 +115,68 @@ void UShooterAnimInstance::TurnInPlace()
 		const float Turning = GetCurveValue(TEXT("Turning"));
 		if (Turning > 0)
 		{
+			bTurningPlace = true;
+
 			RotationCurveValueLastFrame = RotationCurve;
 			RotationCurve = GetCurveValue(TEXT("Rotation"));
 			const float DeltaRotiation = RotationCurve - RotationCurveValueLastFrame;
-			
+
 			// RootYawOffset > 0 -> 왼쪽으로 회전 , RootYawOffset <0, ->오른쪽으로 회전
 			RootYawOffset > 0 ? RootYawOffset -= DeltaRotiation : RootYawOffset += DeltaRotiation;
-	
+
 			const float ABSRootyawOffset = FMath::Abs(RootYawOffset);
 
 
 			if (ABSRootyawOffset > 90.f)
 			{
 				const float YawExcess = ABSRootyawOffset - 90.f;
-		
-			}			
+				RootYawOffset > 0 ? RootYawOffset -= YawExcess : RootYawOffset += YawExcess;
+			}
+		}
+		else
+		{
+			bTurningPlace = false;
+		}
+	}
+		if (bTurningPlace)
+		{
+			if (bReloading)
+			{
+				RecoilWeight = 1.f;
+			}
+			else
+			{
+				RecoilWeight = 0.f;
+			}
+		}
+		else // 안 돌고 있을때
+		{
+			if (bCrouching)
+			{
+				if (bReloading)
+				{
+					RecoilWeight = 1.f;
+				}
+				else
+				{
+					RecoilWeight = 0.1f;
+				}
+
+			}
+			else
+			{
+				if (bAiming || bReloading)
+				{
+					RecoilWeight = 1.f;
+				}
+				else
+				{
+					RecoilWeight = 0.5f;
+				}
+			}
 		}
 	
-	}
+	
 }
 
 void UShooterAnimInstance::Lean(float DeltaTime)

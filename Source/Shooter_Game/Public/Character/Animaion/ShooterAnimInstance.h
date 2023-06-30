@@ -103,4 +103,12 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Crouching, meta = (AllowPrivateAccess = "true"))
 	bool bCrouching = false;
 
+
+	//회전 조준에 따라 반동 무게 변경
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = combat, meta = (AllowPrivateAccess = "true"))
+	float RecoilWeight =1.f;
+
+	// 제자리에서 돌고 있는지
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = combat, meta = (AllowPrivateAccess = "true"))
+	bool bTurningPlace = false;
 };

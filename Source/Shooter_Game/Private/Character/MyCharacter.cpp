@@ -17,6 +17,7 @@
 #include "Item/Weapon.h"
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -92,7 +93,7 @@ void AMyCharacter::Tick(float DeltaTime)
 	//스피어에 겹친 아이템이 있거나 0보다 많으면
 	TraceForItems();
 	
-	
+	InterpCapsuleHalfHeight(DeltaTime);
 }
 
 // Called to bind functionality to input
@@ -104,7 +105,7 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AMyCharacter::Move);
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AMyCharacter::Look);
-		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ACharacter::Jump);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AMyCharacter::Jump);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &AMyCharacter::FireButtonPressed);
 		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &AMyCharacter::FireButtonReleased);
 		EnhancedInputComponent->BindAction(AimingAction, ETriggerEvent::Started, this, &AMyCharacter::AimingButtonPressed);
@@ -226,6 +227,19 @@ void AMyCharacter::Fire()
 		StartFireTimer();
 	}
 
+}
+
+void AMyCharacter::Jump()
+{
+	if (bCrouching)
+	{
+		bCrouching = false;
+		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
+	}
+	else
+	{
+		ACharacter::Jump();
+	}
 }
 
 bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation)
@@ -352,7 +366,16 @@ void AMyCharacter::CrouchingPressed()
 	{
 		bCrouching = !bCrouching;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("1"));
+	if (bCrouching)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = CrouchMovementSpeed;
+		GetCharacterMovement()->GroundFriction = CrouchGroundFriction;
+	}
+	else
+	{
+		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
+		GetCharacterMovement()->GroundFriction = BaseGroundFriction;
+	}
 }
 
 void AMyCharacter::CameraIntrerpZoom(float DeltaTime)
@@ -718,6 +741,30 @@ bool AMyCharacter::CaaryinhAmmo()
 		return AmmoMap[AmmoType] > 0;
 	}
 	return false;
+}
+void AMyCharacter::InterpCapsuleHalfHeight(float DeltaTime)
+{
+	float TargetCapsuleHealfHeight;
+
+	if (bCrouching)
+	{
+		TargetCapsuleHealfHeight = CrouchCapsulHalfHeight;
+	}
+	else
+	{
+		TargetCapsuleHealfHeight = StandingCapsuleHalfHeight;
+	}
+	const float InterpHalfHeight = FMath::FInterpTo(
+		GetCapsuleComponent()->GetScaledCapsuleHalfHeight(),
+		TargetCapsuleHealfHeight,
+		DeltaTime, 20.f);
+	
+	// 앉으면 마이너스 값 Mesh를 올려야함
+	const float DeltaCapsuleHalfHeight = InterpHalfHeight - GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	const FVector MeshOffset(0.f, 0.f, -DeltaCapsuleHalfHeight);
+	GetMesh()->AddLocalOffset(MeshOffset);
+	
+	GetCapsuleComponent()->SetCapsuleHalfHeight(InterpHalfHeight);
 }
 FVector AMyCharacter::GetCameraInterpLocation()
 {
