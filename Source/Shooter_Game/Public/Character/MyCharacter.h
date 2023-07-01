@@ -152,6 +152,9 @@ protected:
 
 	//서거나 앉을때 캡슐 높이 보간 
 	void InterpCapsuleHalfHeight(float DeltaTime);
+
+	void Aim();
+	void StopAiming();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -369,6 +372,9 @@ private:
 	/** 앉았을 때 멈출때 미끄러지는정도 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float CrouchGroundFriction  = 100.f;
+
+	/** 우클릭 버튼을 눌렀나*/
+	bool bAimingButtonPressed = false;
 
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }

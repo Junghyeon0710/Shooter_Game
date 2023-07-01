@@ -279,12 +279,16 @@ bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVect
 
 void AMyCharacter::AimingButtonPressed()
 {
-	bAiming = true;
+
+	bAimingButtonPressed = true;
+	if (CombatState != ECombatState::ECS_Reloading) Aim();
+		
 }
 
 void AMyCharacter::AimingButtonReleased()
 {
-	bAiming = false;
+	bAimingButtonPressed = false;
+	StopAiming();
 }
 
 void AMyCharacter::SelectButtonPressed()
@@ -313,11 +317,13 @@ void AMyCharacter::ReloadButtonPressed()
 void AMyCharacter::ReloadWeapon()
 {
 	if (CombatState != ECombatState::ECS_Unoccupied) return;
+	
 	if (EquipeedWeapon == nullptr) return;
 
-	// 맞는 탄약이 있는지 체크
+	// 맞는 탄약이 있는지 체크 && 탄약이 안 꽉찼는지
 	if (CaaryinhAmmo() && !EquipeedWeapon->ClipIsFull())
 	{
+		if (bAiming) StopAiming();
 		CombatState = ECombatState::ECS_Reloading;
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (ReloadMontage && AnimInstance)
@@ -333,6 +339,9 @@ void AMyCharacter::FinishReloading()
 {
 
 	CombatState = ECombatState::ECS_Unoccupied;
+
+	if (bAimingButtonPressed) Aim();
+
 	if (EquipeedWeapon == nullptr) return;
 
 	const auto AmmoType = EquipeedWeapon->GetAmmoType();
@@ -549,7 +558,7 @@ bool AMyCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHi
 
 	// 십자선 위치 설정
 	FVector2D CrosshairLocation(ViewPortSize.X / 2.f, ViewPortSize.Y / 2.f);
-	CrosshairLocation.Y -= 50.f;
+	//CrosshairLocation.Y -= 50.f;
 	FVector CrosshairWorldPosition;
 	FVector CrosshairWorldDirection;
 
@@ -765,6 +774,19 @@ void AMyCharacter::InterpCapsuleHalfHeight(float DeltaTime)
 	GetMesh()->AddLocalOffset(MeshOffset);
 	
 	GetCapsuleComponent()->SetCapsuleHalfHeight(InterpHalfHeight);
+}
+void AMyCharacter::Aim()
+{
+	bAiming = true;
+	GetCharacterMovement()->MaxWalkSpeed = CrouchMovementSpeed;
+}
+void AMyCharacter::StopAiming()
+{
+	bAiming = false;
+	if (!bCrouching)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
+	}
 }
 FVector AMyCharacter::GetCameraInterpLocation()
 {
