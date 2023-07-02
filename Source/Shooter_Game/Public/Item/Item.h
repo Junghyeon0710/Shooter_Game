@@ -56,7 +56,7 @@ protected:
 	void SetActiveStars();
 
 	/**아이템 속성 설정 */
-	void SetItemProperties(EItemState State);
+	virtual void SetItemProperties(EItemState State);
 
 	/**보간이 끝나면 부르는 함수 */
 	void FinishInterping();
@@ -149,12 +149,13 @@ private:
 public:
 	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickuWidget; }
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
-	FORCEINLINE UBoxComponent* GetCollisonBox() const { return CollisionBox; }
+	FORCEINLINE UBoxComponent* GetCollisionBox() const { return CollisionBox; }
 	FORCEINLINE EItemState GetItemState() const { return ItemState; }
 	void SetItemState(EItemState State);
 	FORCEINLINE USkeletalMeshComponent* GetItemMesh() const { return ItemMesh; }
 	FORCEINLINE USoundBase* GetPickupSound() const { return PickupSound; }
 	FORCEINLINE USoundBase* GetEquipSound() const { return EquipSound; }
+	FORCEINLINE int32 GetItemCount() const { return ItemCount; }
 
 	/**내 캐릭터 클라스를 부름 */
 	void StartItemCurve(AMyCharacter* Char);

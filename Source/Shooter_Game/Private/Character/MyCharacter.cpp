@@ -18,6 +18,7 @@
 #include "Components/SphereComponent.h"
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Item/Ammo.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -788,6 +789,28 @@ void AMyCharacter::StopAiming()
 		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
 	}
 }
+void AMyCharacter::PickupAmmo(AAmmo* Ammo)
+{
+	if (AmmoMap.Find(Ammo->GetAmmoType()))
+	{
+		//AmmoMap 타입에 탄약 갯수
+		int32 AmmoCount = AmmoMap[Ammo->GetAmmoType()];
+		AmmoCount += Ammo->GetItemCount();
+		//총알 갯수를 바꿔줌
+		AmmoMap[Ammo->GetAmmoType()] = AmmoCount;
+	}
+
+	if (EquipeedWeapon->GetAmmoType() == Ammo->GetAmmoType())
+	{
+		//총알이 하나도 없으면 재장전
+		if (EquipeedWeapon->GetAmmo() == 0)
+		{
+			ReloadWeapon();
+		}
+	}
+
+	Ammo->Destroy();
+}
 FVector AMyCharacter::GetCameraInterpLocation()
 {
 	const FVector CameraWorldLocation = Camera->GetComponentLocation();
@@ -810,5 +833,11 @@ void AMyCharacter::GetPickupItem(AItem* Item)
 	if (Weapon)
 	{
 		SwapWeapon(Weapon);
+	}
+
+	auto Ammo = Cast<AAmmo>(Item);
+	if (Ammo)
+	{
+		PickupAmmo(Ammo);
 	}
 }
