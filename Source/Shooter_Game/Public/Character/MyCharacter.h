@@ -18,7 +18,17 @@ enum class ECombatState : uint8
 
 	ECS_Max UMETA(Display = "DefaultMax")
 };
+USTRUCT(BlueprintType)
+struct FInterpLocation
+{
+	GENERATED_BODY()
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class USceneComponent* SceneComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	int32 ItemCount;
+};
 UCLASS()
 class SHOOTER_GAME_API AMyCharacter : public ACharacter
 {
@@ -157,6 +167,11 @@ protected:
 	void StopAiming();
 	
 	void PickupAmmo(class AAmmo* Ammo);
+
+	void InitializeInterpLocation();
+
+	
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -378,6 +393,47 @@ private:
 	/** 우클릭 버튼을 눌렀나*/
 	bool bAimingButtonPressed = false;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* WeaponInterpComp;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* InterpComp1;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* InterpComp2;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* InterpComp3;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* InterpComp4;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* InterpComp5;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	class USceneComponent* InterpComp6;
+
+	// interp 위치 배얄 구조체
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	TArray<FInterpLocation> InterpLocation;
+
+	FTimerHandle PickupSoundTimer;
+	FTimerHandle EqiupSoundTimer;
+
+	bool bShouldPlayPickupSound = false;
+	bool bShouldPlayEquipSound = false;
+
+	void ResetPicukSoundTimer();
+	void ResetEquipSoundTimer();
+
+	//** 픽업 사운드 재생할때 기다려야하는 시간*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float PicupSoundResetTime =.2f;
+	//** 장착 재생할때 기다려야하는 시간*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float EquipSOundResetTime = .2f;
+
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
@@ -397,4 +453,16 @@ public:
 	
 	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
 	FORCEINLINE bool GetCrouching() const { return bCrouching; }
+	FInterpLocation GetInterpLocation(int32 Index);
+
+	//
+	int32 GetInterpLocationIndex();
+
+	void IncrementInterpLocItemCount(int32 Index, int32 Amount);
+
+	FORCEINLINE bool ShouldPlayPickupSound() const { return bShouldPlayPickupSound; }
+	FORCEINLINE bool ShouldPlayEquipSound() const { return bShouldPlayEquipSound; }
+
+	void StartPickupSoundTimer();
+	void StartEquipSoundTimer();
 };

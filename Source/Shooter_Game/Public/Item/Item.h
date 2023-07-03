@@ -33,6 +33,15 @@ enum class EItemState : uint8
 
 };
 
+UENUM(BlueprintType)
+enum class EItemType : uint8
+{
+	EIT_Ammo UMETA(DisplayName = "Ammo"),
+	EIT_Weapon UMETA(DisplayName = "Weapon"),
+
+	EIT_Max UMETA(DisplayName = "DefaultMax"),
+};
+
 UCLASS()
 class SHOOTER_GAME_API AItem : public AActor
 {
@@ -60,6 +69,15 @@ protected:
 
 	/**보간이 끝나면 부르는 함수 */
 	void FinishInterping();
+
+	/**아이템 보간 */
+	void ItemInterp(float DeltaTime);
+
+	/** 아이템 타입에 따른 보간 위치 가져오기*/
+	FVector GetInterpLocation();
+
+	void PlayPickupSound();
+	
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -124,8 +142,7 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	class AMyCharacter* Character;
 
-	/**아이템 보간 */
-	void ItemInterp(float DeltaTime);
+	
 
 	/** X,Y 보간할때 */
 	float ItemInterpX = 0.f;
@@ -146,6 +163,14 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
 	class USoundBase* EquipSound;
 
+	/* 아이템 타입 열거형 **/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	EItemType ItemType = EItemType::EIT_Max;
+
+	//
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	int32 InterpLocIndex = 0;
+
 public:
 	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickuWidget; }
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
@@ -159,4 +184,5 @@ public:
 
 	/**내 캐릭터 클라스를 부름 */
 	void StartItemCurve(AMyCharacter* Char);
+	void PlayEquipSound();
 };

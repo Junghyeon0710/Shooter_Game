@@ -51,6 +51,28 @@ AMyCharacter::AMyCharacter() :
 
 	HandSceneCOmponet = CreateDefaultSubobject<USceneComponent>(TEXT("HandSceneComp"));
 
+	//보간 컴포넌트
+	WeaponInterpComp = CreateDefaultSubobject<USceneComponent>(TEXT("Weapon Interpolation Componet"));
+	WeaponInterpComp->SetupAttachment(Camera);
+
+	InterpComp1 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Componet 1"));
+	InterpComp1->SetupAttachment(Camera);
+
+	InterpComp2 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Componet 2"));
+	InterpComp2->SetupAttachment(Camera);
+
+	InterpComp3 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Componet 3"));
+	InterpComp3->SetupAttachment(Camera);
+
+	InterpComp4 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Componet 4"));
+	InterpComp4->SetupAttachment(Camera);
+
+	InterpComp5 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Componet 5"));
+	InterpComp5->SetupAttachment(Camera);
+
+	InterpComp6 = CreateDefaultSubobject<USceneComponent>(TEXT("Interpolation Componet 6"));
+	InterpComp6->SetupAttachment(Camera);
+
 }
 
 // Called when the game starts or when spawned
@@ -76,6 +98,9 @@ void AMyCharacter::BeginPlay()
 	EquipWeapon(SpawnDefaultWeapon());
 
 	InitializeAmmoMap();
+
+	//보간 구조체 배열에 저장 및 초기화
+	InitializeInterpLocation();	
 	
 }
 
@@ -142,6 +167,16 @@ void AMyCharacter::GrabClip()
 void AMyCharacter::ReleaseClip()
 {
 	EquipeedWeapon->SetMovingClip(false);
+}
+
+void AMyCharacter::ResetPicukSoundTimer()
+{
+	bShouldPlayPickupSound = true;
+}
+
+void AMyCharacter::ResetEquipSoundTimer()
+{
+	bShouldPlayEquipSound = true;
 }
 
 float AMyCharacter::GetCrosshairSpreadMultiplier() const
@@ -298,10 +333,6 @@ void AMyCharacter::SelectButtonPressed()
 	{
 		TraceHitItem->StartItemCurve(this);
 
-		if (TraceHitItem->GetPickupSound())
-		{
-			UGameplayStatics::PlaySound2D(this, TraceHitItem->GetPickupSound());
-		}
 	}
 	
 } 
@@ -811,6 +842,70 @@ void AMyCharacter::PickupAmmo(AAmmo* Ammo)
 
 	Ammo->Destroy();
 }
+void AMyCharacter::InitializeInterpLocation()
+{
+	FInterpLocation WeaponLocation = { WeaponInterpComp, 0 };
+	InterpLocation.Add(WeaponLocation);
+
+	FInterpLocation InterpLoc1 = { InterpComp1,0 };
+	InterpLocation.Add(InterpLoc1);
+
+	FInterpLocation InterpLoc2 = { InterpComp2,0 };
+	InterpLocation.Add(InterpLoc2);
+
+	FInterpLocation InterpLoc3 = { InterpComp3,0 };
+	InterpLocation.Add(InterpLoc3);
+
+	FInterpLocation InterpLoc4 = { InterpComp4,0 };
+	InterpLocation.Add(InterpLoc4);
+
+	FInterpLocation InterpLoc5 = { InterpComp5,0 };
+	InterpLocation.Add(InterpLoc5);
+
+	FInterpLocation InterpLoc6 = { InterpComp6,0 };
+	InterpLocation.Add(InterpLoc5);
+}
+int32 AMyCharacter::GetInterpLocationIndex()
+{
+	int32 LowstIndex = 1;
+	int32 LowsetCount = INT_MAX;
+	for (int32 i = 1; i < InterpLocation.Num(); i++)
+	{
+		if (InterpLocation[i].ItemCount < LowsetCount)
+		{
+			LowstIndex = i;
+			LowsetCount = InterpLocation[i].ItemCount;
+		}
+	}
+	return LowstIndex;
+}
+void AMyCharacter::IncrementInterpLocItemCount(int32 Index, int32 Amount)
+{
+	if (Amount < -1 || Amount>1) return;
+
+	if (InterpLocation.Num() >= Index)
+	{
+		InterpLocation[Index].ItemCount += Amount;
+	}
+}
+void AMyCharacter::StartPickupSoundTimer()
+{
+	bShouldPlayPickupSound = false;
+	GetWorldTimerManager().SetTimer(
+		PickupSoundTimer, 
+		this,
+		&AMyCharacter::ResetPicukSoundTimer,
+		PicupSoundResetTime);
+}
+void AMyCharacter::StartEquipSoundTimer()
+{
+	bShouldPlayEquipSound = false;
+	GetWorldTimerManager().SetTimer(
+		EqiupSoundTimer,
+		this,
+		&AMyCharacter::ResetEquipSoundTimer,
+		EquipSOundResetTime);
+}
 FVector AMyCharacter::GetCameraInterpLocation()
 {
 	const FVector CameraWorldLocation = Camera->GetComponentLocation();
@@ -825,10 +920,9 @@ FVector AMyCharacter::GetCameraInterpLocation()
 
 void AMyCharacter::GetPickupItem(AItem* Item)
 {
-	if (Item->GetEquipSound())
-	{
-		UGameplayStatics::PlaySound2D(this, Item->GetEquipSound());
-	}
+	
+	Item->PlayEquipSound();
+	
 	auto Weapon = Cast<AWeapon>(Item);
 	if (Weapon)
 	{
@@ -840,4 +934,13 @@ void AMyCharacter::GetPickupItem(AItem* Item)
 	{
 		PickupAmmo(Ammo);
 	}
+}
+
+FInterpLocation AMyCharacter::GetInterpLocation(int32 Index)
+{
+	if (Index <= InterpLocation.Num())
+	{
+		return InterpLocation[Index];
+	}
+	return FInterpLocation();
 }

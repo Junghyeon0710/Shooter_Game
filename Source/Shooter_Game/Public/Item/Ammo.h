@@ -23,6 +23,9 @@ protected:
 
 	/**아이템 속성 설정 */
 	virtual void SetItemProperties(EItemState State) override;
+
+	UFUNCTION()
+	void AmmoSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 private:
 
 	//탄약 매쉬
@@ -36,6 +39,10 @@ private:
 	/** 총알갯수 texture*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Ammo, meta = (AllowPrivateAccess = "true"))
 	UTexture2D* AmmoIconTexture;
+
+	/** 탄약을 줍기위한 구 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Ammo, meta = (AllowPrivateAccess = "true"))
+	class USphereComponent* AmmoCollisionSphere;
 public:
 	FORCEINLINE UStaticMeshComponent* GetAmmoMesh() const { return AmmoMesh; }
 	FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }

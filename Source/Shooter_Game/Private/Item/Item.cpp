@@ -7,6 +7,8 @@
 #include "Components/SphereComponent.h"
 #include "Character/MyCharacter.h"
 #include "Camera/CameraComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Sound/SoundCue.h"
 // Sets default values
 AItem::AItem()
 {
@@ -215,6 +217,8 @@ void AItem::FinishInterping()
 	bInterping = false;
 	if (Character)
 	{
+		//구조체 아이템 카운트를 다시빼줌
+		Character->IncrementInterpLocItemCount(InterpLocIndex, -1);
 		Character->GetPickupItem(this);
 	}
 	//스케일 정상적으로 설정
@@ -246,7 +250,7 @@ void AItem::ItemInterp(float DeltaTime)
 		FVector ItemLocation = ItemInterpStartLocation;
 
 		//카메라 앞 위치 가쳐오기
-		const FVector CameraInterpLocation = Character->GetCameraInterpLocation();
+		const FVector CameraInterpLocation = GetInterpLocation();
 		
 		// 아이템에서 카메라까지 보간 위치는 백터 X , Y는 0 카메라 Z위치값이랑 아이템 Z위치 값을 빼줌
 		//그러면 아이템에서 카메라 사이에 Z값을 수할 수 있음
@@ -288,6 +292,56 @@ void AItem::ItemInterp(float DeltaTime)
 	}
 }
 
+FVector AItem::GetInterpLocation()
+{
+	if (Character == nullptr) return FVector(0.f);
+
+	switch (ItemType)
+	{
+	case EItemType::EIT_Ammo :
+		return Character->GetInterpLocation(InterpLocIndex).SceneComponent->GetComponentLocation();
+		break;
+
+	case EItemType::EIT_Weapon :
+		return Character->GetInterpLocation(0).SceneComponent->GetComponentLocation();
+
+		break;
+	
+
+	}
+	return FVector();
+}
+
+void AItem::PlayPickupSound()
+{
+	if (Character)
+	{
+		if (Character->ShouldPlayPickupSound())
+		{
+			Character->StartPickupSoundTimer();
+			if (PickupSound)
+			{
+				UGameplayStatics::PlaySound2D(this, PickupSound);
+			}
+		}
+	}
+}
+
+void AItem::PlayEquipSound()
+{
+	if (Character)
+	{
+		if (Character->ShouldPlayEquipSound())
+		{
+			Character->StartEquipSoundTimer();
+			if (EquipSound)
+			{
+				UGameplayStatics::PlaySound2D(this, EquipSound);
+			}
+		}
+	}
+}
+
 void AItem::SetItemState(EItemState State)
 {
 	ItemState = State;
@@ -298,6 +352,12 @@ void AItem::StartItemCurve(AMyCharacter* Char)
 {
 	Character = Char;
 
+	// 보간 아이템 카운터가 가장 낮은 배열 인덱스를 가져옴 
+	InterpLocIndex = Character->GetInterpLocationIndex();
+	//보간 아이템 아이템 카운트 하나를 증가시켜줌
+	Character->IncrementInterpLocItemCount(InterpLocIndex, 1);
+
+	PlayPickupSound();
 	//아이템 초기위치 
 	ItemInterpStartLocation = GetActorLocation();
 	SetItemState(EItemState::EIS_EquipInterping);
