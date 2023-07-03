@@ -316,11 +316,14 @@ void AItem::PlayPickupSound()
 {
 	if (Character)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("3"));
 		if (Character->ShouldPlayPickupSound())
 		{
+			UE_LOG(LogTemp, Warning, TEXT("1"));
 			Character->StartPickupSoundTimer();
 			if (PickupSound)
 			{
+				UE_LOG(LogTemp, Warning, TEXT("2"));
 				UGameplayStatics::PlaySound2D(this, PickupSound);
 			}
 		}

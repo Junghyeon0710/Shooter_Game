@@ -839,7 +839,8 @@ void AMyCharacter::PickupAmmo(AAmmo* Ammo)
 			ReloadWeapon();
 		}
 	}
-
+	TraceHitItem = nullptr;
+	TraceHitItemLastFrame = nullptr;
 	Ammo->Destroy();
 }
 void AMyCharacter::InitializeInterpLocation()

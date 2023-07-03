@@ -421,8 +421,8 @@ private:
 	FTimerHandle PickupSoundTimer;
 	FTimerHandle EqiupSoundTimer;
 
-	bool bShouldPlayPickupSound = false;
-	bool bShouldPlayEquipSound = false;
+	bool bShouldPlayPickupSound = true;
+	bool bShouldPlayEquipSound = true;
 
 	void ResetPicukSoundTimer();
 	void ResetEquipSoundTimer();
