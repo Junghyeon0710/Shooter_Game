@@ -96,6 +96,11 @@ void AMyCharacter::BeginPlay()
 
 	//무기를 스폰하고 장착
 	EquipWeapon(SpawnDefaultWeapon());
+	Inventory.Add(EquipeedWeapon);
+	EquipeedWeapon->SetSlotIndex(0);
+	//무기 색깔 없음
+	EquipeedWeapon->DisableCustomDepth();
+	EquipeedWeapon->DisableGlowMaterial();
 
 	InitializeAmmoMap();
 
@@ -625,6 +630,7 @@ bool AMyCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHi
 
 void AMyCharacter::TraceForItems()
 {
+	
 	if(bShouldTraceForItems)
 	{
 		FHitResult ItemTraceResult;
@@ -636,6 +642,7 @@ void AMyCharacter::TraceForItems()
 			if (TraceHitItem && TraceHitItem->GetPickupWidget())
 			{
 				TraceHitItem->GetPickupWidget()->SetVisibility(true);
+				TraceHitItem->EnableCustomDepth();
 			}
 			// 마지막에 겹친 아이템이 있는지
 			if (TraceHitItemLastFrame)
@@ -644,6 +651,8 @@ void AMyCharacter::TraceForItems()
 				{
 					//히트 아이템이 널이고 마지막 아이템이 다르면 위젯을 꺼줌
 					TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
+				
+					TraceHitItemLastFrame->DisableCustomDepth();
 				}
 			}
 			// 히트 아이템을 참조
@@ -653,6 +662,7 @@ void AMyCharacter::TraceForItems()
 	else if (TraceHitItemLastFrame)
 	{
 		TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
+		TraceHitItemLastFrame->DisableCustomDepth();
 
 	}
 
@@ -927,7 +937,17 @@ void AMyCharacter::GetPickupItem(AItem* Item)
 	auto Weapon = Cast<AWeapon>(Item);
 	if (Weapon)
 	{
-		SwapWeapon(Weapon);
+		if (Inventory.Num() < INVENTORY_CAPACITY)
+		{
+			Weapon->SetSlotIndex(Inventory.Num());
+			Inventory.Add(Weapon);
+			Weapon->SetItemState(EItemState::EIS_PickedUp);
+		}
+		else //인벤토리가 꽉 참
+		{
+			SwapWeapon(Weapon);
+		}
+		
 	}
 
 	auto Ammo = Cast<AAmmo>(Item);

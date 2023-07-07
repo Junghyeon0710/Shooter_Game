@@ -77,6 +77,17 @@ protected:
 	FVector GetInterpLocation();
 
 	void PlayPickupSound();
+
+	virtual void InitializeCustomDepth();
+
+	virtual void OnConstruction(const FTransform& Transform) override;
+
+	void EnableGlowMaterial();
+
+	void UpdatePulse();
+
+	void ResetPulseTimer();
+	void StartPulseTimer();
 	
 public:	
 	// Called every frame
@@ -171,6 +182,60 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	int32 InterpLocIndex = 0;
 
+	/**메트리얼 인덱스 실챙중 바꿈 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	int32 MatrialIndex = 0;
+
+	/** 동적 인스턴스 게임중에 바꿈*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	UMaterialInstanceDynamic* DynamicMaterialInstance;
+
+	/** 동적 머트리얼에 사용될 머트리얼 인스턴스 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	UMaterialInstance* MaterialInstance;
+
+	bool bCanChangeCustomDepth = true;
+
+	/** 동적 머티리얼 매개변수 커브*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	class UCurveVector* PulseCurve;
+
+	/** 동적 머티리얼 매개변수 커브*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	class UCurveVector* InterpPulseCurve;
+
+	FTimerHandle PulseTimer;
+
+	/**  타이머 시간 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
+	float PulseCurvetime = 5.f;
+
+	UPROPERTY(VisibleAnywhere, Category = Items, meta = (AllowPrivateAccess = "true"))
+	float GlowAmount = 150.f;
+
+	UPROPERTY(VisibleAnywhere, Category = Items, meta = (AllowPrivateAccess = "true"))
+	float FresnelExponet = 3.f;
+
+	UPROPERTY(VisibleAnywhere, Category = Items, meta = (AllowPrivateAccess = "true"))
+	float FresnelReflectFraction = 4.f;
+
+	// 배경 아이템 인벤토리
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UTexture2D* IconBackgrount;
+
+	// 아이콘 아이템 인벤토리
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UTexture2D* IconItem;
+
+	// 아이콘 아이템 인벤토리
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	UTexture2D* AmmoIcon;
+
+	/**  인벤토리 슬롯 배열 인덱스 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	int32 SlotIndex = 0;
+
+
 public:
 	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickuWidget; }
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
@@ -181,8 +246,15 @@ public:
 	FORCEINLINE USoundBase* GetPickupSound() const { return PickupSound; }
 	FORCEINLINE USoundBase* GetEquipSound() const { return EquipSound; }
 	FORCEINLINE int32 GetItemCount() const { return ItemCount; }
+	FORCEINLINE int32 GetSlotIndex() const { return SlotIndex; }
+	FORCEINLINE void SetSlotIndex(int32 Index) { SlotIndex = Index; }
 
 	/**내 캐릭터 클라스를 부름 */
 	void StartItemCurve(AMyCharacter* Char);
 	void PlayEquipSound();
+
+
+	virtual void EnableCustomDepth();
+	virtual void DisableCustomDepth();
+	void DisableGlowMaterial();
 };

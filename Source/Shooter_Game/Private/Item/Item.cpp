@@ -9,6 +9,7 @@
 #include "Camera/CameraComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundCue.h"
+#include "Curves/CurveVector.h"
 // Sets default values
 AItem::AItem()
 {
@@ -49,6 +50,11 @@ void AItem::BeginPlay()
 
 	//아이템 속성 설정
 	SetItemProperties(ItemState);
+
+	//사용지 지정 깊이를 비호라성화
+	InitializeCustomDepth();
+	StartPulseTimer();
+	
 }
 
 void AItem::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -161,6 +167,21 @@ void AItem::SetItemProperties(EItemState State)
 		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		break;
 	case EItemState::EIS_PickedUp:
+		PickuWidget->SetVisibility(false);
+		// 아이템 속성 변경
+		ItemMesh->SetSimulatePhysics(false);
+		ItemMesh->SetEnableGravity(false);
+		ItemMesh->SetVisibility(false);
+		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+
+		// 스피어 속성 설정
+		AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+
+		//박스 콜리전 설정
+		CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		break;
 	case EItemState::EIS_Equipped:
 		PickuWidget->SetVisibility(false);
@@ -220,9 +241,15 @@ void AItem::FinishInterping()
 		//구조체 아이템 카운트를 다시빼줌
 		Character->IncrementInterpLocItemCount(InterpLocIndex, -1);
 		Character->GetPickupItem(this);
+		SetItemState(EItemState::EIS_PickedUp);
 	}
 	//스케일 정상적으로 설정
 	SetActorScale3D(FVector(1.f));
+	
+	DisableGlowMaterial();
+	bCanChangeCustomDepth = true;
+	DisableCustomDepth();
+
 	
 }
 
@@ -233,6 +260,8 @@ void AItem::Tick(float DeltaTime)
 
 	//아이템 보간
 	ItemInterp(DeltaTime);
+	//커브 값으로 동적 머티리얼 매겨변수 값으로 바꿔준다.
+	UpdatePulse();
 }
 
 void AItem::ItemInterp(float DeltaTime)
@@ -330,6 +359,85 @@ void AItem::PlayPickupSound()
 	}
 }
 
+void AItem::EnableCustomDepth()
+{
+	if (bCanChangeCustomDepth)
+	{
+		ItemMesh->SetRenderCustomDepth(true);
+	}
+	
+}
+
+void AItem::DisableCustomDepth()
+{
+	if (bCanChangeCustomDepth)
+	{
+		ItemMesh->SetRenderCustomDepth(false);
+	}
+	
+}
+
+void AItem::InitializeCustomDepth()
+{
+	DisableCustomDepth();
+}
+
+void AItem::OnConstruction(const FTransform& Transform)
+{
+	if (MaterialInstance)
+	{
+		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, this);
+		ItemMesh->SetMaterial(MatrialIndex, DynamicMaterialInstance);
+	}
+	EnableGlowMaterial();
+}
+
+void AItem::EnableGlowMaterial()
+{
+	if (DynamicMaterialInstance)
+	{
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 0);
+	}
+}
+
+void AItem::UpdatePulse()
+{
+	float EalpesdTIme;
+	FVector CurveValue;
+	switch (ItemState)
+	{
+	case EItemState::EIS_Pickup:
+		if (PulseCurve)
+		{
+			EalpesdTIme = GetWorldTimerManager().GetTimerElapsed(PulseTimer);
+			CurveValue = PulseCurve->GetVectorValue(EalpesdTIme);
+		}
+		break;
+	case EItemState::EIS_EquipInterping:
+		if (InterpPulseCurve)
+		{
+			EalpesdTIme = GetWorldTimerManager().GetTimerElapsed(ItemInterpTimer);
+			CurveValue = InterpPulseCurve->GetVectorValue(EalpesdTIme);
+		}
+		break;
+	}
+	if (DynamicMaterialInstance)
+	{
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowAmount"), CurveValue.X * GlowAmount);
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("FresnelExponent"), CurveValue.Y * FresnelExponet);
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("FresnelReflectFraction"), CurveValue.Z * FresnelReflectFraction);
+	}
+}
+	
+
+void AItem::DisableGlowMaterial()
+{
+	if (DynamicMaterialInstance)
+	{
+		DynamicMaterialInstance->SetScalarParameterValue(TEXT("GlowBlendAlpha"), 1);
+	}
+}
+
 void AItem::PlayEquipSound()
 {
 	if (Character)
@@ -342,6 +450,23 @@ void AItem::PlayEquipSound()
 				UGameplayStatics::PlaySound2D(this, EquipSound);
 			}
 		}
+	}
+}
+
+void AItem::ResetPulseTimer()
+{
+	StartPulseTimer();
+}
+
+void AItem::StartPulseTimer()
+{
+	if (ItemState == EItemState::EIS_Pickup)
+	{
+		GetWorldTimerManager().SetTimer(
+			PulseTimer,
+			this,
+			&AItem::ResetPulseTimer,
+			PulseCurvetime);
 	}
 }
 
@@ -365,7 +490,7 @@ void AItem::StartItemCurve(AMyCharacter* Char)
 	ItemInterpStartLocation = GetActorLocation();
 	SetItemState(EItemState::EIS_EquipInterping);
 	bInterping = true;
-
+	GetWorldTimerManager().ClearTimer(PulseTimer);
 	GetWorldTimerManager().SetTimer(
 		ItemInterpTimer,
 		this, &AItem::FinishInterping,
@@ -379,5 +504,6 @@ void AItem::StartItemCurve(AMyCharacter* Char)
 
 	// 카메라 아이템 사이의 초기 Yaw 오프셋 
 	InterpInitialYawOffset = ItmeRotationYaw - CameraRotationYaw;
+	bCanChangeCustomDepth = false;
 }
 

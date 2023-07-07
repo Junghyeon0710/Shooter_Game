@@ -434,6 +434,12 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float EquipSOundResetTime = .2f;
 
+	//인벤토리 배열
+	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = Inventory , meta = (AllowPrivateAccess = "true"))
+	TArray<AItem*> Inventory;
+
+	const int INVENTORY_CAPACITY = 6;
+
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
