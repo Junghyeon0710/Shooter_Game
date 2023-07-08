@@ -15,6 +15,7 @@ enum class ECombatState : uint8
 	ECS_Unoccupied UMETA(Display = "Unoccupied"),
 	ECS_FireTimerInProgress UMETA(Display = "FireTimerInProgress"),
 	ECS_Reloading UMETA(Display = "Reloading"),
+	ECS_Equipping UMETA(Display = "Equipping"),
 
 	ECS_Max UMETA(Display = "DefaultMax")
 };
@@ -29,6 +30,10 @@ struct FInterpLocation
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 ItemCount;
 };
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipItemDelegate, int32, CurrentSlotIndex, int32, NewSlotIndex);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FHighlightIconDelegate, int32, SlotIndex, bool, bStartAniamion);
+
 UCLASS()
 class SHOOTER_GAME_API AMyCharacter : public ACharacter
 {
@@ -73,9 +78,34 @@ protected:
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* ReloadAction;
 
-	/** 웅크리기 액션 */
+	/** F키 액션 */
 	UPROPERTY(EditAnywhere, Category = Input)
 	class UInputAction* CrouchAction;
+
+	/** F키 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* FKeyhAction;
+
+	/** 1Key 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* Key1Action;
+
+	/** 2Key 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* Key2Action;
+
+	/** 3Key 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* Key3Action;
+
+	/** 4Key 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* Key4Action;
+
+	/** 5Key 액션 */
+	UPROPERTY(EditAnywhere, Category = Input)
+	class UInputAction* Key5Action;
+
 
 	void Move(const FInputActionValue& Value); //캐릭터 움직이기
 	void Look(const FInputActionValue& Value); //캐릭터 마우스로 보기	
@@ -100,9 +130,22 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
 
+	UFUNCTION(BlueprintCallable)
+	void FinishEquipping();
+
 	//시프트키 누르면 웅크림
 
 	void CrouchingPressed();
+
+	// 인벤토리 키
+	void FKeyPressed();
+	void Key1Pressed();
+	void Key2Pressed();
+	void Key3Pressed();
+	void Key4Pressed();
+	void Key5Pressed();
+
+	void ExchangeInventoryIrems(int32 CurrentItemIndex, int32 NewItemIndex);
 
 	//카메라 보강
 	void CameraIntrerpZoom(float DeltaTime);
@@ -137,7 +180,7 @@ protected:
 	class AWeapon* SpawnDefaultWeapon();
 
 	/**무기 장착 */
-	void EquipWeapon(AWeapon* WeaponToEquip);
+	void EquipWeapon(AWeapon* WeaponToEquip,bool bSwapping = false);
 
 	/**무기를 떨어트림 */
 	void DropWeapon();
@@ -170,7 +213,11 @@ protected:
 
 	void InitializeInterpLocation();
 
-	
+	UFUNCTION(BlueprintCallable)
+	int32 GetEmptyInventorySlot();
+
+	void HighlightInventorySlot();
+
 
 public:	
 	// Called every frame
@@ -239,6 +286,10 @@ private:
 	/** 재장전 몽타주 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	class UAnimMontage* ReloadMontage;
+
+	/** 무기교체 몽타주 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UAnimMontage* EquipMontage;
 
 	/** 조준하고 있냐 참거짓*/
 	UPROPERTY(visibleAnywhere, BlueprintReadOnly,Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -440,6 +491,17 @@ private:
 
 	const int INVENTORY_CAPACITY = 6;
 
+	/** 인벤토리에 보내는 위임자*/
+	UPROPERTY(BlueprintAssignable,Category=Delegate,  meta = (AllowPrivateAccess = "true"))
+	FEquipItemDelegate EquipItemDelegate;
+
+	UPROPERTY(BlueprintAssignable, Category = Delegate, meta = (AllowPrivateAccess = "true"))
+	FHighlightIconDelegate HighlightIconDelegate;
+
+	/** 현재강조된 엔덱스 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	int32 HighlightedSlot =-1;
+
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
@@ -470,5 +532,6 @@ public:
 	FORCEINLINE bool ShouldPlayEquipSound() const { return bShouldPlayEquipSound; }
 
 	void StartPickupSoundTimer();
-	void StartEquipSoundTimer();
+	void StartEquipSoundTimer(); 
+	void UnHighlightInventorySlot();
 };

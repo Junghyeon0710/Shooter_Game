@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Engine/DataTable.h"
 #include "Item.generated.h"
 
 UENUM(BlueprintType)
@@ -42,6 +43,30 @@ enum class EItemType : uint8
 	EIT_Max UMETA(DisplayName = "DefaultMax"),
 };
 
+USTRUCT(BlueprintType)
+struct FItemRarityTable : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite)
+	FLinearColor GlowColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FLinearColor LightColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FLinearColor DarkColor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 NumberOfStars;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* IconBackground;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 CustomDepthStecil;
+};
+
 UCLASS()
 class SHOOTER_GAME_API AItem : public AActor
 {
@@ -76,7 +101,7 @@ protected:
 	/** 아이템 타입에 따른 보간 위치 가져오기*/
 	FVector GetInterpLocation();
 
-	void PlayPickupSound();
+	void PlayPickupSound(bool bForcePlaySound = false);
 
 	virtual void InitializeCustomDepth();
 
@@ -117,7 +142,7 @@ private:
 	int32 ItemCount = 0;
 
 	/** 별의 갯수 - 위젯에 별의 갯수를 결정*/
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Item", meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rarity", meta = (AllowPrivateAccess = "true"))
 	EItemRariy ItemRarity = EItemRariy::EIR_Common;
 
 	/** 별의 갯수 - 위젯에 별의 갯수를 설정*/
@@ -219,10 +244,6 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = Items, meta = (AllowPrivateAccess = "true"))
 	float FresnelReflectFraction = 4.f;
 
-	// 배경 아이템 인벤토리
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
-	UTexture2D* IconBackgrount;
-
 	// 아이콘 아이템 인벤토리
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	UTexture2D* IconItem;
@@ -235,7 +256,33 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	int32 SlotIndex = 0;
 
+	/** 인벤토리 슬롯 배열 인덱스가 꽉참 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
+	bool bCharacterInventoryFull = false;
 
+	/** 아이템 별 테이블 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowPrivateAccess = "true"))
+	class UDataTable* ItemRarityDataTable;
+
+	/** 글로우 머티리얼 색*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
+	FLinearColor GlowColor;
+
+	/** 픽업 위젯색*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
+	FLinearColor LightColor;
+
+	/** 픽업 위젯색*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
+	FLinearColor DarkColor;
+
+	/** 픽업 위젯 별 갯수*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
+	int32 NumberOfStars;
+
+	/** 픽업 위젯 아이콘 배경화면*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rarity, meta = (AllowPrivateAccess = "true"))
+	UTexture2D* IconBackgorund;
 public:
 	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickuWidget; }
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; }
@@ -248,10 +295,12 @@ public:
 	FORCEINLINE int32 GetItemCount() const { return ItemCount; }
 	FORCEINLINE int32 GetSlotIndex() const { return SlotIndex; }
 	FORCEINLINE void SetSlotIndex(int32 Index) { SlotIndex = Index; }
+	FORCEINLINE void SetCharacter(AMyCharacter* Char) { Character = Char; }
+	FORCEINLINE void SetCharacterInventoryFull(bool bFull) { bCharacterInventoryFull = bFull; }
 
 	/**내 캐릭터 클라스를 부름 */
-	void StartItemCurve(AMyCharacter* Char);
-	void PlayEquipSound();
+	void StartItemCurve(AMyCharacter* Char ,bool bForcePlaySound = false);
+	void PlayEquipSound(bool bForcePlaySound = false);
 
 
 	virtual void EnableCustomDepth();

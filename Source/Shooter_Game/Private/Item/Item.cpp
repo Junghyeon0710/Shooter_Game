@@ -78,6 +78,7 @@ void AItem::OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 		if (ShooterCharaceter)
 		{
 			ShooterCharaceter->IncrementOverlappedItemCount(-1);
+			ShooterCharaceter->UnHighlightInventorySlot();
 		}
 	}
 }
@@ -208,6 +209,7 @@ void AItem::SetItemProperties(EItemState State)
 		// 아이템 속성 변경
 		ItemMesh->SetSimulatePhysics(true);
 		ItemMesh->SetEnableGravity(true);
+		ItemMesh->SetVisibility(true);
 		ItemMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		ItemMesh->SetCollisionResponseToChannel(
@@ -241,7 +243,8 @@ void AItem::FinishInterping()
 		//구조체 아이템 카운트를 다시빼줌
 		Character->IncrementInterpLocItemCount(InterpLocIndex, -1);
 		Character->GetPickupItem(this);
-		SetItemState(EItemState::EIS_PickedUp);
+		Character->UnHighlightInventorySlot();
+
 	}
 	//스케일 정상적으로 설정
 	SetActorScale3D(FVector(1.f));
@@ -341,18 +344,23 @@ FVector AItem::GetInterpLocation()
 	return FVector();
 }
 
-void AItem::PlayPickupSound()
+void AItem::PlayPickupSound(bool bForcePlaySound)
 {
 	if (Character)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("3"));
-		if (Character->ShouldPlayPickupSound())
+		if (bForcePlaySound)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("1"));
+			if (PickupSound)
+			{
+				UGameplayStatics::PlaySound2D(this, PickupSound);
+			}
+		}
+		else if (Character->ShouldPlayPickupSound())
+		{
+			
 			Character->StartPickupSoundTimer();
 			if (PickupSound)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("2"));
 				UGameplayStatics::PlaySound2D(this, PickupSound);
 			}
 		}
@@ -384,12 +392,56 @@ void AItem::InitializeCustomDepth()
 
 void AItem::OnConstruction(const FTransform& Transform)
 {
+	
+	//아이템 데이터 테이블 읽어옴
+
+	//아이템 데이터 테이블 경로 
+	FString RarityTablePath(TEXT("/Script/Engine.DataTable'/Game/DataTable/DT_ItemRarityDataTable.DT_ItemRarityDataTable'"));
+	UDataTable* RarityTableObject = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+		nullptr, *RarityTablePath));
+
+	if (RarityTableObject)
+	{
+		FItemRarityTable* RarityRow = nullptr;
+		switch (ItemRarity)
+		{
+			case EItemRariy::EIR_Damaged:
+				RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Damaged"), TEXT(""));
+				break;
+			case EItemRariy::EIR_Common:
+				RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Common"), TEXT(""));
+				break;
+			case EItemRariy::EIR_Uncommon:
+				RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Uncommon"), TEXT(""));
+				break;
+			case EItemRariy::EIR_Rare:
+				RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Rare"), TEXT(""));
+				break;
+			case EItemRariy::EIR_Legendary:
+				RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Legendary"), TEXT(""));
+				break;
+
+		}
+		if (RarityRow)
+		{
+			GlowColor = RarityRow->GlowColor;
+			LightColor = RarityRow->LightColor;
+			DarkColor = RarityRow->DarkColor;
+			NumberOfStars = RarityRow->NumberOfStars;
+			IconBackgorund = RarityRow->IconBackground;
+			if (GetItemMesh())
+			{
+				GetItemMesh()->SetCustomDepthStencilValue(RarityRow->CustomDepthStecil);
+			}
+		}
+	}
 	if (MaterialInstance)
 	{
 		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, this);
+		DynamicMaterialInstance->SetVectorParameterValue(TEXT("FresnelColor"), GlowColor);
 		ItemMesh->SetMaterial(MatrialIndex, DynamicMaterialInstance);
+		EnableGlowMaterial();
 	}
-	EnableGlowMaterial();
 }
 
 void AItem::EnableGlowMaterial()
@@ -438,11 +490,18 @@ void AItem::DisableGlowMaterial()
 	}
 }
 
-void AItem::PlayEquipSound()
+void AItem::PlayEquipSound(bool bForcePlaySound)
 {
 	if (Character)
 	{
-		if (Character->ShouldPlayEquipSound())
+		if (bForcePlaySound)
+		{
+			if (EquipSound)
+			{
+				UGameplayStatics::PlaySound2D(this, EquipSound);
+			}
+		}
+		else if (Character->ShouldPlayEquipSound())
 		{
 			Character->StartEquipSoundTimer();
 			if (EquipSound)
@@ -476,7 +535,7 @@ void AItem::SetItemState(EItemState State)
 	SetItemProperties(State);
 }
 
-void AItem::StartItemCurve(AMyCharacter* Char)
+void AItem::StartItemCurve(AMyCharacter* Char, bool bForcePlaySound)
 {
 	Character = Char;
 
@@ -485,7 +544,7 @@ void AItem::StartItemCurve(AMyCharacter* Char)
 	//보간 아이템 아이템 카운트 하나를 증가시켜줌
 	Character->IncrementInterpLocItemCount(InterpLocIndex, 1);
 
-	PlayPickupSound();
+	PlayPickupSound(bForcePlaySound);
 	//아이템 초기위치 
 	ItemInterpStartLocation = GetActorLocation();
 	SetItemState(EItemState::EIS_EquipInterping);

@@ -101,7 +101,7 @@ void AMyCharacter::BeginPlay()
 	//무기 색깔 없음
 	EquipeedWeapon->DisableCustomDepth();
 	EquipeedWeapon->DisableGlowMaterial();
-
+	EquipeedWeapon->SetCharacter(this);
 	InitializeAmmoMap();
 
 	//보간 구조체 배열에 저장 및 초기화
@@ -145,6 +145,12 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(SelectAction, ETriggerEvent::Started, this, &AMyCharacter::SelectButtonReleased);
 		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &AMyCharacter::ReloadButtonPressed);
 		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AMyCharacter::CrouchingPressed);
+		EnhancedInputComponent->BindAction(FKeyhAction, ETriggerEvent::Started, this, &AMyCharacter::FKeyPressed);
+		EnhancedInputComponent->BindAction(Key1Action, ETriggerEvent::Started, this, &AMyCharacter::Key1Pressed);
+		EnhancedInputComponent->BindAction(Key2Action, ETriggerEvent::Started, this, &AMyCharacter::Key2Pressed);
+		EnhancedInputComponent->BindAction(Key3Action, ETriggerEvent::Started, this, &AMyCharacter::Key3Pressed);
+		EnhancedInputComponent->BindAction(Key4Action, ETriggerEvent::Started, this, &AMyCharacter::Key4Pressed);
+		EnhancedInputComponent->BindAction(Key5Action, ETriggerEvent::Started, this, &AMyCharacter::Key5Pressed);
 
 
 	}
@@ -334,10 +340,11 @@ void AMyCharacter::AimingButtonReleased()
 
 void AMyCharacter::SelectButtonPressed()
 {
+	if (CombatState != ECombatState::ECS_Unoccupied) return;
 	if (TraceHitItem)
 	{
-		TraceHitItem->StartItemCurve(this);
-
+		TraceHitItem->StartItemCurve(this,true);
+		TraceHitItem = nullptr;
 	}
 	
 } 
@@ -406,6 +413,11 @@ void AMyCharacter::FinishReloading()
 	}
 }
 
+void AMyCharacter::FinishEquipping()
+{
+	CombatState = ECombatState::ECS_Unoccupied;
+}
+
 void AMyCharacter::CrouchingPressed()
 {
 	if (!GetCharacterMovement()->IsFalling())
@@ -421,6 +433,77 @@ void AMyCharacter::CrouchingPressed()
 	{
 		GetCharacterMovement()->MaxWalkSpeed = BaseMovementSpeed;
 		GetCharacterMovement()->GroundFriction = BaseGroundFriction;
+	}
+}
+
+void AMyCharacter::FKeyPressed()
+{
+	if (EquipeedWeapon->GetSlotIndex() == 0) return;
+
+	ExchangeInventoryIrems(EquipeedWeapon->GetSlotIndex(), 0);
+}
+
+void AMyCharacter::Key1Pressed()
+{
+	
+	if (EquipeedWeapon->GetSlotIndex() == 1) return;
+
+	ExchangeInventoryIrems(EquipeedWeapon->GetSlotIndex(), 1);
+	
+}
+
+void AMyCharacter::Key2Pressed()
+{
+	if (EquipeedWeapon->GetSlotIndex() == 2) return;
+
+	ExchangeInventoryIrems(EquipeedWeapon->GetSlotIndex(), 2);
+}
+
+void AMyCharacter::Key3Pressed()
+{
+	if (EquipeedWeapon->GetSlotIndex() == 3) return;
+
+	ExchangeInventoryIrems(EquipeedWeapon->GetSlotIndex(), 3);
+}
+
+void AMyCharacter::Key4Pressed()
+{
+	if (EquipeedWeapon->GetSlotIndex() == 4) return;
+
+	ExchangeInventoryIrems(EquipeedWeapon->GetSlotIndex(), 4);
+}
+
+void AMyCharacter::Key5Pressed()
+{
+	if (EquipeedWeapon->GetSlotIndex() == 5) return;
+
+	ExchangeInventoryIrems(EquipeedWeapon->GetSlotIndex(), 5);
+}
+
+void AMyCharacter::ExchangeInventoryIrems(int32 CurrentItemIndex, int32 NewItemIndex)
+{
+	const bool bCanExchangeItems =
+		(CurrentItemIndex != NewItemIndex) &&
+		(NewItemIndex < Inventory.Num()) &&
+		(CombatState == ECombatState::ECS_Unoccupied || CombatState == ECombatState::ECS_Equipping);
+
+	if (bCanExchangeItems)
+	{
+		auto OldEquippedWeapon = EquipeedWeapon;
+		auto NewWeapon = Cast<AWeapon>(Inventory[NewItemIndex]);
+
+		EquipWeapon(NewWeapon);
+		OldEquippedWeapon->SetItemState(EItemState::EIS_PickedUp);
+		NewWeapon->SetItemState(EItemState::EIS_Equipped);
+
+		CombatState = ECombatState::ECS_Equipping;
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (AnimInstance && EquipMontage)
+		{
+			AnimInstance->Montage_Play(EquipMontage, 1.0);
+			AnimInstance->Montage_JumpToSection(FName("Equip"));
+		}
+		NewWeapon->PlayEquipSound(true);
 	}
 }
 
@@ -639,10 +722,40 @@ void AMyCharacter::TraceForItems()
 		if (ItemTraceResult.bBlockingHit)
 		{
 			TraceHitItem = Cast<AItem>(ItemTraceResult.GetActor());
+			const auto TraceHitWeapon = Cast<AWeapon>(TraceHitItem);
+			if (TraceHitWeapon)
+			{
+				if (HighlightedSlot == -1)
+				{
+					//현재 강조된 슬롯이 없다.
+					HighlightInventorySlot();
+				}
+			}
+			else
+			{
+				if (HighlightedSlot != -1)
+				{
+					UnHighlightInventorySlot();
+				}
+			}
+			if (TraceHitItem && TraceHitItem->GetItemState() == EItemState::EIS_EquipInterping)
+			{
+				TraceHitItem = nullptr;
+			}
 			if (TraceHitItem && TraceHitItem->GetPickupWidget())
 			{
 				TraceHitItem->GetPickupWidget()->SetVisibility(true);
 				TraceHitItem->EnableCustomDepth();
+
+				if (Inventory.Num() >= INVENTORY_CAPACITY)
+				{
+					//인벤토리 꽉참
+					TraceHitItem->SetCharacterInventoryFull(true);
+				}
+				else //인벤토리 안꽉참
+				{
+					TraceHitItem->SetCharacterInventoryFull(false);
+				}
 			}
 			// 마지막에 겹친 아이템이 있는지
 			if (TraceHitItemLastFrame)
@@ -677,7 +790,7 @@ AWeapon* AMyCharacter::SpawnDefaultWeapon()
 	return nullptr;
 }
 
-void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip)
+void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip , bool bSwapping)
 {
 	if (WeaponToEquip)
 	{
@@ -689,6 +802,17 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip)
 			//무기를 오른쪽 소켓에 붙임
 			HandSocket->AttachActor(WeaponToEquip, GetMesh());
 		}
+		
+		if (EquipeedWeapon == nullptr)
+		{
+			//장착돤 아이넴이 없다.
+			EquipItemDelegate.Broadcast(-1, WeaponToEquip->GetSlotIndex());
+		}
+		else if(!bSwapping)
+		{
+			EquipItemDelegate.Broadcast(EquipeedWeapon->GetSlotIndex(), WeaponToEquip->GetSlotIndex());
+		}
+
 		//장착한 무기는 스폰된 무기
 		EquipeedWeapon = WeaponToEquip;
 		//장착한 상태
@@ -711,8 +835,15 @@ void AMyCharacter::DropWeapon()
 
 void AMyCharacter::SwapWeapon(AWeapon* WeaponToSwap)
 {
+
+	if (Inventory.Num() - 1 >= EquipeedWeapon->GetSlotIndex())
+	{
+		Inventory[EquipeedWeapon->GetSlotIndex()] = WeaponToSwap;
+		WeaponToSwap->SetSlotIndex(EquipeedWeapon->GetSlotIndex());
+	}
+
 	DropWeapon();
-	EquipWeapon(WeaponToSwap);
+	EquipWeapon(WeaponToSwap,true);
 	TraceHitItem = nullptr;
 	TraceHitItemLastFrame = nullptr;
 }
@@ -875,6 +1006,32 @@ void AMyCharacter::InitializeInterpLocation()
 
 	FInterpLocation InterpLoc6 = { InterpComp6,0 };
 	InterpLocation.Add(InterpLoc5);
+}
+int32 AMyCharacter::GetEmptyInventorySlot()
+{
+	for (int32 i = 0; i < Inventory.Num(); i++)
+	{
+		if (Inventory[i] == nullptr)
+		{
+			return i;
+		}
+	}
+	if (Inventory.Num() < INVENTORY_CAPACITY)
+	{
+		return Inventory.Num();
+	}
+	return -1; // 인벤토리 꽉참
+}
+void AMyCharacter::HighlightInventorySlot()
+{
+	const int32 EmptySlot = GetEmptyInventorySlot();
+	HighlightIconDelegate.Broadcast(EmptySlot, true);
+	HighlightedSlot = EmptySlot;
+}
+void AMyCharacter::UnHighlightInventorySlot()
+{
+	HighlightIconDelegate.Broadcast(HighlightedSlot, false);
+	HighlightedSlot = -1;
 }
 int32 AMyCharacter::GetInterpLocationIndex()
 {
