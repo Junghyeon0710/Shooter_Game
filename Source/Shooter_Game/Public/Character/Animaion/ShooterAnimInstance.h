@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Animation/AnimInstance.h"
+#include "../../WeaponType.h"
 #include "ShooterAnimInstance.generated.h"
 
 UENUM(BlueprintType)
@@ -115,4 +116,13 @@ private:
 	// 제자리에서 돌고 있는지
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = combat, meta = (AllowPrivateAccess = "true"))
 	bool bTurningPlace = false;
+
+
+	//현재 장착된 무기타입
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = combat, meta = (AllowPrivateAccess = "true"))
+	EWeaponType EquippedWeaponType = EWeaponType::EWT_Max;
+
+	//장착하거나 재장전하지 않을 때 True
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = combat, meta = (AllowPrivateAccess = "true"))
+	bool bShoulUseFABRIK = false;
 };

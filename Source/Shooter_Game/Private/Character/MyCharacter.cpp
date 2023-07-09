@@ -272,6 +272,12 @@ void AMyCharacter::Fire()
 
 		//타이머재생
 		StartFireTimer();
+
+		if (EquipeedWeapon->GetWeaponType() == EWeaponType::EWT_Pistol)
+		{
+			//슬라이 타이머 시작
+			EquipeedWeapon->StartSlideTimer();
+		}
 	}
 
 }
@@ -639,12 +645,13 @@ void AMyCharacter::FireButtonReleased()
 
 void AMyCharacter::StartFireTimer()
 {
+	if (EquipeedWeapon == nullptr) return;
 	CombatState = ECombatState::ECS_FireTimerInProgress;
 
 	GetWorldTimerManager().SetTimer(AutoFireTimer,
 		this,
 		&AMyCharacter::AutoFireReset,
-		AutoAmticFireRate);
+		EquipeedWeapon->GetAutoFireRate());
 	
 }
 
@@ -860,10 +867,11 @@ bool AMyCharacter::WeaponHasAmmo()
 }
 void AMyCharacter::PlayFireSound()
 {
+	if (EquipeedWeapon == nullptr) return;
 	//사운드 플레이
-	if (FireSound)
+	if (EquipeedWeapon->GetFireSound())
 	{
-		UGameplayStatics::PlaySound2D(this, FireSound);
+		UGameplayStatics::PlaySound2D(this,EquipeedWeapon->GetFireSound());
 	}
 }
 void AMyCharacter::SendBullet()
@@ -875,9 +883,9 @@ void AMyCharacter::SendBullet()
 	{
 		const FTransform SocketTransform = Weapon_Socket->GetSocketTransform(EquipeedWeapon->GetItemMesh());
 
-		if (MuzzleFalsh)
+		if (EquipeedWeapon->GetMuzzleFlash())
 		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), MuzzleFalsh, SocketTransform);
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquipeedWeapon->GetMuzzleFlash(), SocketTransform);
 		}
 
 		FVector BeamEnd;

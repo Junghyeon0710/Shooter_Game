@@ -265,11 +265,11 @@ private:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), meta = (ClampMin = "0.0", Clamp = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float MouseAimingLookUpRate =0.2f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = Combat, meta = (AllowPrivateAccess = "true"))
-	class USoundCue* FireSound;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = Combat, meta = (AllowPrivateAccess = "true"))
+	//class USoundCue* FireSound;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	class UParticleSystem* MuzzleFalsh;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	//class UParticleSystem* MuzzleFalsh;
 
 	/** 히트지점 파티클 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -337,8 +337,8 @@ private:
 	/*발사할 때 트루  타이머 기다릴때 거짓**/
 	bool bShouldFire = true;
 
-	/**자동 총쏘기 시간 */
-	float AutoAmticFireRate = 0.1f;
+	///**자동 총쏘기 시간 */
+	//float AutoAmticFireRate = 0.1f;
 
 	/** 총쏘는 사이 타이머*/
 	FTimerHandle AutoFireTimer;
@@ -534,4 +534,6 @@ public:
 	void StartPickupSoundTimer();
 	void StartEquipSoundTimer(); 
 	void UnHighlightInventorySlot();
+
+	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquipeedWeapon; }
 };

@@ -291,13 +291,28 @@ public:
 	void SetItemState(EItemState State);
 	FORCEINLINE USkeletalMeshComponent* GetItemMesh() const { return ItemMesh; }
 	FORCEINLINE USoundBase* GetPickupSound() const { return PickupSound; }
+	FORCEINLINE void SetPickupSound(USoundBase* Sound) {  PickupSound = Sound; }
 	FORCEINLINE USoundBase* GetEquipSound() const { return EquipSound; }
+	FORCEINLINE void SetEquipSound(USoundBase* Sound) {  EquipSound = Sound; }
 	FORCEINLINE int32 GetItemCount() const { return ItemCount; }
 	FORCEINLINE int32 GetSlotIndex() const { return SlotIndex; }
 	FORCEINLINE void SetSlotIndex(int32 Index) { SlotIndex = Index; }
 	FORCEINLINE void SetCharacter(AMyCharacter* Char) { Character = Char; }
 	FORCEINLINE void SetCharacterInventoryFull(bool bFull) { bCharacterInventoryFull = bFull; }
+	FORCEINLINE void SetItemName(FString Name) { ItemName = Name; }
+	FORCEINLINE void SetIconItem(UTexture2D* Icon) { IconItem = Icon; }
+	FORCEINLINE void SetAmmoIcon(UTexture2D* Icon) { AmmoIcon = Icon; }
 
+	FORCEINLINE void SetMaterialInstance(UMaterialInstance* Instance) { MaterialInstance = Instance; }
+	FORCEINLINE UMaterialInstance* GetMaterialInstance() const { return MaterialInstance; }
+
+	FORCEINLINE void SetDynamicMaterialInstance(UMaterialInstanceDynamic* Dynamic) { DynamicMaterialInstance = Dynamic; }
+	FORCEINLINE UMaterialInstanceDynamic* GetDynamicMaterialInstance() const { return DynamicMaterialInstance; }
+	
+	FORCEINLINE FLinearColor GetGlowColor() const { return GlowColor; }
+	FORCEINLINE int32 GetMaterialIndex() const {return MatrialIndex; }
+	FORCEINLINE void SetMaterialIndex(int32 Index) { MatrialIndex = Index; }
+	
 	/**내 캐릭터 클라스를 부름 */
 	void StartItemCurve(AMyCharacter* Char ,bool bForcePlaySound = false);
 	void PlayEquipSound(bool bForcePlaySound = false);

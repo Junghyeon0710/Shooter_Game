@@ -5,6 +5,7 @@
 #include <../Public/Character/MyCharacter.h>
 #include <GameFramework/CharacterMovementComponent.h>
 #include "Kismet/KismetMathLibrary.h"
+#include "../Public/Item/Weapon.h"
 
 void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 {
@@ -17,6 +18,8 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		bCrouching = ShooterCharacter->GetCrouching();
 		bReloading = ShooterCharacter->GetCombatState() == ECombatState::ECS_Reloading;
 		bEquipping = ShooterCharacter->GetCombatState() == ECombatState::ECS_Equipping;
+		bShoulUseFABRIK = ShooterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied || ShooterCharacter->GetCombatState() == ECombatState::ECS_FireTimerInProgress;
+		
 		FVector Veloctiy = ShooterCharacter->GetVelocity();
 		Veloctiy.Z = 0;
 		Speed = Veloctiy.Size();
@@ -76,6 +79,10 @@ void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 		else
 		{
 			OffsetState = EOffsetState::EOS_Hip;
+		}
+		if (ShooterCharacter->GetEquippedWeapon())
+		{
+			EquippedWeaponType = ShooterCharacter->GetEquippedWeapon()->GetWeaponType();
 		}
 	}
 	TurnInPlace();

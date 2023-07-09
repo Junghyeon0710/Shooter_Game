@@ -5,16 +5,87 @@
 #include "CoreMinimal.h"
 #include "Item/Item.h"
 #include "../AmmoType.h"
+#include "Engine/DataTable.h"
+#include "../WeaponType.h"
 #include "Weapon.generated.h"
 
-UENUM(BlueprintType)
-enum class EWeaponType : uint8
-{
-	EWT_SubmachineGun UMETA(DisplayName = "SubmachineGun"),
-	EWT_AssaultRifle UMETA(DisplayName = "AssaultRifle"),
 
-	EWT_Max UMETA(DisplayName = "DefaultMax")
+USTRUCT(BlueprintType)
+struct FWeaponDataTable : public FTableRowBase
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	EAmmoType AmmoType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 WeaponAmmo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int MagazingCapacity;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class USoundBase* PickupSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class USoundBase* EquipSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USkeletalMesh* ItemMesh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString ItemName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* InventoryIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* AmmoIcon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UMaterialInstance* MaterialInstance;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 MaterialIndex;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ClipBoneName;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName ReloadMontageSection;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<UAnimInstance> AnimBp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* CrosshairsMiddle;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* CrosshairsLeft;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* CrosshairsRight;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* CrosshairsBottom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UTexture2D* CrosshairsTop;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float AutoFireRate;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	class UParticleSystem* MuzzleFalsh;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	USoundBase* FireSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FName BoneToHide;
+	
 };
+
 /**
  * 
  */
@@ -29,6 +100,13 @@ public:
 protected:
 	
 	void StopFalling();
+
+	virtual void OnConstruction(const FTransform& Transform) override;
+
+	virtual void BeginPlay() override;
+
+	void FinishMovingSlide();
+	void UpdateSlideDisplacement();
 private:
 	FTimerHandle ThrowWeaponTimer;
 	float ThrowWeaponTime = 0.7f;
@@ -57,6 +135,71 @@ private:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "weapon", meta = (AllowprivateAccess = "true"))
 	FName ClipBoneName = "smg_clip";
+
+	UPROPERTY(EditDefaultsOnly,Category = DataTable, meta = (AllowprivateAccess = "true"))
+	UDataTable* WeaponDataTable;
+
+	int32 PreviousMaterialIndex;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowprivateAccess = "true"))
+	UTexture2D* CrosshairsMiddle;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowprivateAccess = "true"))
+	UTexture2D* CrosshairsLeft;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowprivateAccess = "true"))
+	UTexture2D* CrosshairsRight;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowprivateAccess = "true"))
+	UTexture2D* CrosshairsBottom;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowprivateAccess = "true"))
+	UTexture2D* CrosshairsTop;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowprivateAccess = "true"))
+	float AutoFireRate;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowprivateAccess = "true"))
+	class UParticleSystem* MuzzleFalsh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowprivateAccess = "true"))
+	USoundBase* FireSound;
+
+	/** 본 숨기기*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = DataTable, meta = (AllowprivateAccess = "true"))
+	FName BoneToHide;
+
+	/** 발사중에 슬라이드가 뒤로 밀리는 거리 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowprivateAccess = "true"))
+	float SlideDisplacement = 0.f;
+
+	/** 커브 곡선*/
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowprivateAccess = "true"))
+	UCurveFloat* SlideDisplacementCurve;
+
+	/* 사격중 업데이트 타이머**/
+	FTimerHandle SlideTimer;
+
+	// 권총 사격중 슬라이드를 옮길 시간
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowprivateAccess = "true"))
+	float SlideDisplacementTime= 0.5f;
+
+	//권총이 사격할떄 움직였나
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowprivateAccess = "true"))
+	bool bMovingSlide = false;
+
+	//권총 슬라이드 최대 거리
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowprivateAccess = "true"))
+	float MaxSlideDisplacement =4.f;
+
+	/** 발사중에 총 회전 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowprivateAccess = "true"))
+	float RecoilRotation = 0.f;
+
+	//권총 반동 회전 최대
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Pistol, meta = (AllowprivateAccess = "true"))
+	float MaxRecoilRotation  = 20.f;
+
 public:
 	void ThrowWeapon();
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
@@ -69,8 +212,13 @@ public:
 
 	FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }
 	FORCEINLINE FName GetReloadMontageSecion() const { return ReloadMontageSecion; }
+	FORCEINLINE void SetReloadMontageSecion(FName Name) { ReloadMontageSecion = Name; }
 	FORCEINLINE FName GetClipBoneName() const { return ClipBoneName; }
+	FORCEINLINE float GetAutoFireRate() const { return AutoFireRate; }
+	FORCEINLINE UParticleSystem* GetMuzzleFlash() const { return MuzzleFalsh; }
+	FORCEINLINE USoundBase* GetFireSound() const { return FireSound; }
 
+	void StartSlideTimer();
 	void ReloadAmmo(int32 Amount);
 
 	FORCEINLINE void SetMovingClip(bool Move) { bMovingClip = Move; }
