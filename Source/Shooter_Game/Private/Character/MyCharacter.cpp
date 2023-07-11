@@ -334,7 +334,7 @@ void AMyCharacter::AimingButtonPressed()
 {
 
 	bAimingButtonPressed = true;
-	if (CombatState != ECombatState::ECS_Reloading) Aim();
+	if (CombatState != ECombatState::ECS_Reloading && CombatState != ECombatState::ECS_Equipping) Aim();
 		
 }
 
@@ -422,6 +422,10 @@ void AMyCharacter::FinishReloading()
 void AMyCharacter::FinishEquipping()
 {
 	CombatState = ECombatState::ECS_Unoccupied;
+	if (bAimingButtonPressed)
+	{
+		Aim();
+	}
 }
 
 void AMyCharacter::CrouchingPressed()
@@ -495,6 +499,10 @@ void AMyCharacter::ExchangeInventoryIrems(int32 CurrentItemIndex, int32 NewItemI
 
 	if (bCanExchangeItems)
 	{
+		if (bAiming)
+		{
+			StopAiming();
+		}
 		auto OldEquippedWeapon = EquipeedWeapon;
 		auto NewWeapon = Cast<AWeapon>(Inventory[NewItemIndex]);
 
@@ -658,10 +666,10 @@ void AMyCharacter::StartFireTimer()
 void AMyCharacter::AutoFireReset()
 {
 	CombatState = ECombatState::ECS_Unoccupied;
-
+	if (EquipeedWeapon == nullptr) return;
 	if (WeaponHasAmmo())
 	{
-		if (bFireButtonPressed)
+		if (bFireButtonPressed&& EquipeedWeapon->GetAutomatic())
 		{
 			Fire();
 		}

@@ -169,6 +169,7 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 			MuzzleFalsh = WeaponDataRow->MuzzleFalsh;
 			FireSound = WeaponDataRow->FireSound;
 			BoneToHide = WeaponDataRow->BoneToHide;
+			bAutomatic = WeaponDataRow->bAutomatic;
 
 		}
 
