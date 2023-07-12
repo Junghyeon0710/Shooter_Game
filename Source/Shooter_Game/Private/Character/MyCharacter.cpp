@@ -19,6 +19,8 @@
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Item/Ammo.h"
+#include <PhysicalMaterials/PhysicalMaterial.h>
+#include "../Shooter_Game.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -1043,6 +1045,23 @@ void AMyCharacter::HighlightInventorySlot()
 	const int32 EmptySlot = GetEmptyInventorySlot();
 	HighlightIconDelegate.Broadcast(EmptySlot, true);
 	HighlightedSlot = EmptySlot;
+}
+EPhysicalSurface AMyCharacter::GetSurfaceType()
+{
+	
+	FHitResult HitResult;
+	const FVector Start = GetActorLocation();
+	const FVector End = Start + FVector(0.f, 0.f, -400.f);
+	FCollisionQueryParams QueryParms;
+	QueryParms.bReturnPhysicalMaterial = true;
+
+	GetWorld()->LineTraceSingleByChannel(
+		HitResult,
+		Start, End,
+		ECollisionChannel::ECC_Visibility,
+		QueryParms);
+	
+	return UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
 }
 void AMyCharacter::UnHighlightInventorySlot()
 {
