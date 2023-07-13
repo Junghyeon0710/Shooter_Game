@@ -114,7 +114,7 @@ protected:
 
 	virtual void Jump() override;
 
-	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation);
+	bool GetBeamEndLocation(const FVector& MuzzleSocketLocation, FHitResult& OutHitResult);
 
 	/** 조준버튼을 눌렀나 안눌렀나*/
 	void AimingButtonPressed();

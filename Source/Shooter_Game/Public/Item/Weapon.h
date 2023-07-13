@@ -86,6 +86,12 @@ struct FWeaponDataTable : public FTableRowBase
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool bAutomatic;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float Damage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float HeadShotDamage;
 	
 };
 
@@ -206,6 +212,13 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wepaon Properties", meta = (AllowprivateAccess = "true"))
 	bool bAutomatic = true; 
 
+	/** 무기 데미지*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wepaon Properties", meta = (AllowprivateAccess = "true"))
+	float Damage;
+
+	/** 헤드 데미지*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wepaon Properties", meta = (AllowprivateAccess = "true"))
+	float HeadShotDamae;
 public:
 	void ThrowWeapon();
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
@@ -224,7 +237,9 @@ public:
 	FORCEINLINE UParticleSystem* GetMuzzleFlash() const { return MuzzleFalsh; }
 	FORCEINLINE USoundBase* GetFireSound() const { return FireSound; }
 	FORCEINLINE bool GetAutomatic() const { return bAutomatic; }
-
+	FORCEINLINE float GetDamage() const {return Damage; }
+	FORCEINLINE float GetHeadShotDamage() const { return HeadShotDamae; }
+		
 	void StartSlideTimer();
 	void ReloadAmmo(int32 Amount);
 

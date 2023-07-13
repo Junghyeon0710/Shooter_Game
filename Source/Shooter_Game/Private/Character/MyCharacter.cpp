@@ -21,6 +21,8 @@
 #include "Item/Ammo.h"
 #include <PhysicalMaterials/PhysicalMaterial.h>
 #include "../Shooter_Game.h"
+#include "../Public/Interface/BulletHitInterface.h"
+#include "../Public/Character/Enemy.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -297,8 +299,9 @@ void AMyCharacter::Jump()
 	}
 }
 
-bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVector& OutBeamLocation)
+bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FHitResult& OutHitResult)
 {
+	FVector OutBeamLocation;
 	FHitResult CrosshairHitResult;
 	bool bCrooshairHit = TraceUnderCrosshairs(CrosshairHitResult, OutBeamLocation);
 
@@ -312,23 +315,23 @@ bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FVect
 	}
 
 	//두번째 라인트레이스 총위치에서			
-	FHitResult WeaponTraceHit;
+
 	const FVector WeaponTraceStart = MuzzleSocketLocation;
 	const FVector StartToEnd = OutBeamLocation - MuzzleSocketLocation; //시작부터 끝에 거리는 끝에서 처음 거리를 뺴면된다.
 	const FVector WeaponTraceEnd = MuzzleSocketLocation + StartToEnd *1.25;
 	GetWorld()->LineTraceSingleByChannel(
-		WeaponTraceHit,
+		OutHitResult,
 		WeaponTraceStart,
 		WeaponTraceEnd,
 		ECollisionChannel::ECC_Visibility
 	);
 
-	if (WeaponTraceHit.bBlockingHit) //// 총입구에서 발사지점 사이에 물체가 있다면 
+	if (!OutHitResult.bBlockingHit) //// 총입구에서 발사지점 사이에 물체가 있다면 
 	{
-		OutBeamLocation = WeaponTraceHit.Location;
-		return true;
+		OutHitResult.Location = OutBeamLocation;
+		return false;
 	}
-	return false;
+	return true;
 	
 }
 
@@ -898,23 +901,64 @@ void AMyCharacter::SendBullet()
 			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquipeedWeapon->GetMuzzleFlash(), SocketTransform);
 		}
 
-		FVector BeamEnd;
-		bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamEnd);
+		FHitResult BeamHitReuslt;
+		bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamHitReuslt);
 		if (bBeamEnd)
 		{
-			if (ImpactParticle) //히트지점 파티클
+			//인터페이스가 존재하나요
+			if (BeamHitReuslt.GetActor())
 			{
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),
-					ImpactParticle, BeamEnd);
-			}
+				IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitReuslt.GetActor());
+				if (BulletHitInterface)
+				{
+					BulletHitInterface->BulletHit_Implementation(BeamHitReuslt);
+				}
 
+				AEnemy* HitEnmey = Cast<AEnemy>(BeamHitReuslt.GetActor());
+				if (HitEnmey)
+				{
+					int32 Damage;
+					//헤드샷
+					if (BeamHitReuslt.BoneName.ToString() == HitEnmey->GetHeadBone())
+					{
+						Damage = EquipeedWeapon->GetHeadShotDamage();
+						UGameplayStatics::ApplyDamage(
+							BeamHitReuslt.GetActor(),
+							EquipeedWeapon->GetHeadShotDamage(),
+							GetController(),
+							this,
+							UDamageType::StaticClass());
+						HitEnmey->ShowHitNumber(Damage, BeamHitReuslt.Location,true);
+					}
+					else
+					{
+						Damage = EquipeedWeapon->GetDamage();
+						UGameplayStatics::ApplyDamage(
+							BeamHitReuslt.GetActor(),
+							EquipeedWeapon->GetDamage(),
+							GetController(),
+							this,
+							UDamageType::StaticClass());
+						HitEnmey->ShowHitNumber(Damage, BeamHitReuslt.Location,false);
+					}
+					
+				}
+			}
+			else
+			{
+				if(ImpactParticle) //히트지점 파티클
+			
+				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),
+					ImpactParticle, BeamHitReuslt.Location);
+			}
+		
 			if (BeamParticle)
 			{
 				UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
 					GetWorld(), BeamParticle, SocketTransform);
 				if (Beam)
 				{
-					Beam->SetVectorParameter(FName("Target"), BeamEnd);//어디까지 연기가 가게 할건지
+					Beam->SetVectorParameter(FName("Target"), BeamHitReuslt.Location);//어디까지 연기가 가게 할건지
 				}
 			}
 		}
