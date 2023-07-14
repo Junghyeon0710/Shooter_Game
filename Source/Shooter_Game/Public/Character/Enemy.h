@@ -28,6 +28,8 @@ protected:
 	void HideHealthBar();
 
 	void PlayHitMontage(FName Section,float PlayRate =1.0f);
+	UFUNCTION(BlueprintCallable)
+	void PlayAttackMontage(FName Section, float PlayRate = 1.0f);
 
 	void ResetHitReactTimer();
 
@@ -38,6 +40,45 @@ protected:
 	void DestoryNumber(UUserWidget* HitNumber);
 
 	void UpdateHitNumbers();
+
+	UFUNCTION()
+	void AgroSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void AgroSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	
+	UFUNCTION(BlueprintCallable)
+	void SetStunned(bool Stunned);
+
+	UFUNCTION()
+	void CombatRangeOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void CombatRangeEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+
+	UFUNCTION(BlueprintPure)
+	FName GetAttackSectionName();
+
+	UFUNCTION()
+	void OnLeftWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION()
+	void OnRightWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	
+	//무기 충돌 활성화/비활성화
+	UFUNCTION(BlueprintCallable)
+	void ActivateLeftWeapon();
+	UFUNCTION(BlueprintCallable)
+	void DeActivateLeftWeapon();
+
+	UFUNCTION(BlueprintCallable)
+	void ActivateRightWeapon();
+	UFUNCTION(BlueprintCallable)
+	void DeActivateRightWeapon();
+
+	void DoDamage(class AMyCharacter* Victim);
+
+	void SpawnBlood(AMyCharacter* Victime, FName SocketName);
 
 private:
 
@@ -89,6 +130,65 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float HitNumberDestroyTime = 1.5f;
 
+	/** 비에버트리 클래스 */
+	UPROPERTY(EditAnywhere, Category = "Behavior Tree", meta = (AllowPrivateAccess = "true"))
+	class UBehaviorTree* BeHaviorTree;
+
+	/** 순찰 장소 */
+	UPROPERTY(EditAnywhere, Category = "Behavior Tree", meta = (AllowPrivateAccess = "true",MakeEditWidget ="true"))
+	FVector PatrolPoint;
+
+	/** 순찰 장소 */
+	UPROPERTY(EditAnywhere, Category = "Behavior Tree", meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	FVector PatrolPoint2;
+
+	UPROPERTY()
+	class AMyAIController* EnemyController;
+
+	/* 스페어에 닿으면 쫒아옴 **/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	class USphereComponent* AgrosSphere;
+
+	/** 맞앗을때 실행 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	bool bStunned = false;
+
+	/** 스턴 찬스 0 = 0퍼 1 = 100퍼*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	float StunChance =.5f;
+
+	/** 공겸범위 안에 있나 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	bool bInAttackRange = false;
+
+	/** 공격범위 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	USphereComponent* CombatRangeSphere;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	class UAnimMontage* AttackMontage;
+
+	FName AttackLFast = "AttackL_Fast";
+	FName AttackRFast = "AttackR_Fast";
+
+	FName AttackL = "AttackL";
+	FName AttackR = "AttackR";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	class UBoxComponent* LeftWeaponCollision;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	class UBoxComponent* RightWeaponCollision;
+
+	/** 적 기본 데미지 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	float BaseDamage = 20.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	FName LeftWeaponSocket = "Fx_trail_L_01";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	FName RightWeaponSocket = "Fx_trail_R_01";
 
 public:	
 	// Called every frame
@@ -100,9 +200,13 @@ public:
 	virtual void BulletHit_Implementation(FHitResult HitResult) override;
 	
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
+	
 public:
 	FORCEINLINE FString GetHeadBone() const { return HeadBone; }
 
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowHitNumber(int32 Damage, FVector HitLoaction,bool bHeadShot);
+
+	FORCEINLINE UBehaviorTree* GetBehaviorTree() const { return BeHaviorTree; }
 };

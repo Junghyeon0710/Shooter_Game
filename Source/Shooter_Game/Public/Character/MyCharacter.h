@@ -221,12 +221,17 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	EPhysicalSurface GetSurfaceType();
 
+	
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+
 private:
 	UPROPERTY(VisibleAnywhere)
 	class USpringArmComponent* SpringArm;
@@ -504,6 +509,21 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Inventory, meta = (AllowPrivateAccess = "true"))
 	int32 HighlightedSlot =-1;
 
+	/** 체력 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	float Health =100.f;
+
+	/** 최대체력 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	float MaxHealth = 100.f;
+
+	/** 맞을 때 사운드 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class USoundBase* MeleeImpactSound;
+
+	/** 맞을 때 피 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UParticleSystem* BloodParticle;
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
@@ -538,4 +558,8 @@ public:
 	void UnHighlightInventorySlot();
 
 	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquipeedWeapon; }
+	FORCEINLINE float GetHealth() const { return Health; }
+	FORCEINLINE float GetMaxHelath() const { return MaxHealth; }
+	FORCEINLINE USoundBase* GetMeleeImpactSound() const { return MeleeImpactSound; }
+	FORCEINLINE UParticleSystem* GetBloodParticle() const { return BloodParticle; }
 };
