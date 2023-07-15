@@ -16,6 +16,7 @@ enum class ECombatState : uint8
 	ECS_FireTimerInProgress UMETA(Display = "FireTimerInProgress"),
 	ECS_Reloading UMETA(Display = "Reloading"),
 	ECS_Equipping UMETA(Display = "Equipping"),
+	ECS_Stuneed UMETA(Display = "Stuneed"),
 
 	ECS_Max UMETA(Display = "DefaultMax")
 };
@@ -221,8 +222,14 @@ protected:
 	UFUNCTION(BlueprintCallable)
 	EPhysicalSurface GetSurfaceType();
 
-	
+	UFUNCTION(BlueprintCallable)
+	void EndStun();
 
+	UFUNCTION(BlueprintCallable)
+	void Die();
+
+	UFUNCTION(BlueprintCallable)
+	void FinishDeath();
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -510,7 +517,7 @@ private:
 	int32 HighlightedSlot =-1;
 
 	/** 체력 */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float Health =100.f;
 
 	/** 최대체력 */
@@ -524,6 +531,19 @@ private:
 	/** 맞을 때 피 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	class UParticleSystem* BloodParticle;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UAnimMontage* HitReactMontage;
+
+	/** 스턴 걸일 찬슨 */
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	float StunChance =.25f;
+
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	class UAnimMontage* DeathMontage;
+
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
@@ -562,4 +582,7 @@ public:
 	FORCEINLINE float GetMaxHelath() const { return MaxHealth; }
 	FORCEINLINE USoundBase* GetMeleeImpactSound() const { return MeleeImpactSound; }
 	FORCEINLINE UParticleSystem* GetBloodParticle() const { return BloodParticle; }
+	FORCEINLINE float GetStunChance() const { return StunChance; }
+	void Stun();
+
 };

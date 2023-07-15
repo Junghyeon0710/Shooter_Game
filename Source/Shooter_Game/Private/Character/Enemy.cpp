@@ -16,6 +16,7 @@
 #include "Components/BoxComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
 
+
 // Sets default values
 AEnemy::AEnemy()
 {
@@ -66,6 +67,11 @@ void AEnemy::BeginPlay()
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	//AI 컨트롤러 가져오기
 	EnemyController = Cast<AMyAIController>(GetController());
+
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("CanAttack"), true);
+	}
 
 	const FVector WorldPatrolPoint = UKismetMathLibrary::TransformLocation(
 		GetActorTransform(),PatrolPoint);
@@ -146,6 +152,17 @@ void AEnemy::PlayAttackMontage(FName Section, float PlayRate)
 		AnimInstance->Montage_Play(AttackMontage, PlayRate);
 		AnimInstance->Montage_JumpToSection(Section, AttackMontage);
 	}
+	bCanAttack = false;
+	GetWorldTimerManager().SetTimer(
+		AttackWaitTimer,
+		this,
+		&AEnemy::ResetCanAttack,
+		AttackWaitTime
+	);
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("CanAttack"), false);
+	}
 }
 
 void AEnemy::ResetHitReactTimer()
@@ -196,7 +213,7 @@ void AEnemy::AgroSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 	auto Character = Cast<AMyCharacter>(OtherActor);
 
 	//겹친 캐릭터가 있으면
-	if (Character)
+	if (Character && EnemyController && EnemyController->GetBlackboardComponent())
 	{
 		//블랙보드 타켓을 부딫힌 캐릭터로 바꿔줌
 		EnemyController->GetBlackboardComponent()->SetValueAsObject(
@@ -277,6 +294,7 @@ void AEnemy::OnLeftWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 	{
 		DoDamage(Character);
 		SpawnBlood(Character, LeftWeaponSocket);
+		StunCharacter(Character);
 	}
 
 }
@@ -288,6 +306,7 @@ void AEnemy::OnRightWeaponOverlap(UPrimitiveComponent* OverlappedComponent, AAct
 	{
 		DoDamage(Character);
 		SpawnBlood(Character, RightWeaponSocket);
+		StunCharacter(Character);
 	}
 }
 
@@ -350,6 +369,55 @@ void AEnemy::SpawnBlood(AMyCharacter* Victime, FName SocketName)
 
 }
 
+void AEnemy::StunCharacter(AMyCharacter* Victime)
+{
+	if (Victime)
+	{
+		const float Stun = FMath::FRandRange(.0f, 1.f);
+		if (Stun <= Victime->GetStunChance())
+		{
+			Victime->Stun();
+		}
+	}
+}
+
+void AEnemy::ResetCanAttack()
+{
+	bCanAttack = true;
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("CanAttack"), true);
+	}
+}
+
+void AEnemy::Die()
+{
+	if (bDying) return;
+	bDying = true;
+	HideHealthBar();
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && DeathMontage)
+	{
+		AnimInstance->Montage_Play(DeathMontage);
+	}
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(
+			FName("Dead"),
+			true
+		);
+		EnemyController->StopMovement();
+	}
+}
+
+void AEnemy::FinishDeath()
+{
+	GetMesh()->bPauseAnims = true;
+	SetLifeSpan(3.f);
+	//Destroy();
+}
+
 // Called every frame
 void AEnemy::Tick(float DeltaTime)
 {
@@ -364,7 +432,7 @@ void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
 }
-void AEnemy::BulletHit_Implementation(FHitResult HitResult)
+void AEnemy::BulletHit_Implementation(FHitResult HitResult, AActor* Shooter, AController* ShooterController)
 {
 	if (ImpactSound)
 	{
@@ -375,6 +443,28 @@ void AEnemy::BulletHit_Implementation(FHitResult HitResult)
 		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles,
 			HitResult.Location, FRotator(0.f), true);
 	}
+}
+
+float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	//맞으면 블랙보드 키를 때린사름으로 바꿔줌
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsObject(FName("Target"), DamageCauser);
+	}
+	if (Health - DamageAmount <= 0.f)
+	{
+		Health = 0.f;
+		Die();
+
+	}
+	else
+	{
+		Health -= DamageAmount;
+	}
+
+	if (bDying) return DamageAmount;
+
 	ShowHealthBar();
 
 	const float Stunned = FMath::FRandRange(0.1f, 1.f);
@@ -384,20 +474,6 @@ void AEnemy::BulletHit_Implementation(FHitResult HitResult)
 		PlayHitMontage(FName("Front"));
 		SetStunned(true);
 	}
-
-}
-
-float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
-{
-	if (Health - DamageAmount <= 0.f)
-	{
-		Health = 0.f;
-	}
-	else
-	{
-		Health -= DamageAmount;
-	}
-
 	return DamageAmount;
 }
 

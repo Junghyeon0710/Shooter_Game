@@ -23,6 +23,8 @@
 #include "../Shooter_Game.h"
 #include "../Public/Interface/BulletHitInterface.h"
 #include "../Public/Character/Enemy.h"
+#include "AIController/MyAIController.h"
+#include "BehaviorTree/BlackboardComponent.h"
 
 // Sets default values
 AMyCharacter::AMyCharacter() :
@@ -165,10 +167,19 @@ float AMyCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 	if (Health - DamageAmount <= 0.f)
 	{
 		Health = 0.f;
+		Die();
+
+		auto EnemyController = Cast<AMyAIController>(EventInstigator);
+		if (EnemyController)
+		{
+			EnemyController->GetBlackboardComponent()->SetValueAsBool(
+				FName("CharacterDead"), true);
+		}
 	}
 	else
 	{
 		Health -= DamageAmount;
+		
 	}
 
 	return DamageAmount;
@@ -353,8 +364,10 @@ void AMyCharacter::AimingButtonPressed()
 {
 
 	bAimingButtonPressed = true;
-	if (CombatState != ECombatState::ECS_Reloading && CombatState != ECombatState::ECS_Equipping) Aim();
-		
+	if (CombatState != ECombatState::ECS_Reloading &&
+		CombatState != ECombatState::ECS_Equipping &&
+		CombatState != ECombatState::ECS_Stuneed) Aim();
+
 }
 
 void AMyCharacter::AimingButtonReleased()
@@ -406,6 +419,7 @@ void AMyCharacter::ReloadWeapon()
 
 void AMyCharacter::FinishReloading()
 {
+	if (CombatState == ECombatState::ECS_Stuneed) return;
 
 	CombatState = ECombatState::ECS_Unoccupied;
 
@@ -440,6 +454,8 @@ void AMyCharacter::FinishReloading()
 
 void AMyCharacter::FinishEquipping()
 {
+	if (CombatState == ECombatState::ECS_Stuneed) return;
+
 	CombatState = ECombatState::ECS_Unoccupied;
 	if (bAimingButtonPressed)
 	{
@@ -684,6 +700,7 @@ void AMyCharacter::StartFireTimer()
 
 void AMyCharacter::AutoFireReset()
 {
+	if (CombatState == ECombatState::ECS_Stuneed) return;
 	CombatState = ECombatState::ECS_Unoccupied;
 	if (EquipeedWeapon == nullptr) return;
 	if (WeaponHasAmmo())
@@ -925,7 +942,7 @@ void AMyCharacter::SendBullet()
 				IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitReuslt.GetActor());
 				if (BulletHitInterface)
 				{
-					BulletHitInterface->BulletHit_Implementation(BeamHitReuslt);
+					BulletHitInterface->BulletHit_Implementation(BeamHitReuslt,this,GetController());
 				}
 
 				AEnemy* HitEnmey = Cast<AEnemy>(BeamHitReuslt.GetActor());
@@ -1121,10 +1138,49 @@ EPhysicalSurface AMyCharacter::GetSurfaceType()
 	
 	return UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
 }
+void AMyCharacter::EndStun()
+{
+	CombatState = ECombatState::ECS_Unoccupied;
+
+	if (bAimingButtonPressed)
+	{
+		Aim();
+	}
+}
+void AMyCharacter::Die()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && DeathMontage)
+	{
+		AnimInstance->Montage_Play(DeathMontage);
+	}
+}
+void AMyCharacter::FinishDeath()
+{
+	GetMesh()->bPauseAnims = true;
+	APlayerController* PC = UGameplayStatics::GetPlayerController(this, 0);
+	if (PC)
+	{
+		DisableInput(PC);
+	}
+	
+}
 void AMyCharacter::UnHighlightInventorySlot()
 {
 	HighlightIconDelegate.Broadcast(HighlightedSlot, false);
 	HighlightedSlot = -1;
+}
+void AMyCharacter::Stun()
+{
+	if (Health <= 0.f) return;
+	CombatState = ECombatState::ECS_Stuneed;
+	StopAiming();
+	UAnimInstance* Instance = GetMesh()->GetAnimInstance();
+	if (Instance && HitReactMontage)
+	{
+		Instance->Montage_Play(HitReactMontage);
+		//Instance->Montage_JumpToSection("Front", HitReactMontage);
+	}
 }
 int32 AMyCharacter::GetInterpLocationIndex()
 {

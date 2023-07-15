@@ -80,6 +80,16 @@ protected:
 
 	void SpawnBlood(AMyCharacter* Victime, FName SocketName);
 
+	// 캐릭터를 스턴시키기
+	void StunCharacter(AMyCharacter* Victime);
+
+	void ResetCanAttack();
+
+	void Die();
+
+	UFUNCTION(BlueprintCallable)
+	void FinishDeath();
+
 private:
 
 	/** 맞았을 때 파티클*/
@@ -190,6 +200,26 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
 	FName RightWeaponSocket = "Fx_trail_R_01";
 
+	/** 적이 공격할 수 있나 */
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	bool bCanAttack = true;
+
+	FTimerHandle AttackWaitTimer;
+
+	/** 적이 다음공격까지 걸리는 시간*/
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	float AttackWaitTime =1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	class UAnimMontage* DeathMontage;
+
+	bool bDying = false;
+
+	FTimerHandle DeathTimer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true", MakeEditWidget = "true"))
+	float DeathTime;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
@@ -197,7 +227,7 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
-	virtual void BulletHit_Implementation(FHitResult HitResult) override;
+	virtual void BulletHit_Implementation(FHitResult HitResult, AActor* Shooter, AController* ShooterController) override;
 	
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
