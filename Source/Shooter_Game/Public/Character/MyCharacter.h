@@ -544,6 +544,9 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	class UAnimMontage* DeathMontage;
 
+	//캐릭터가 죽으면 트루
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
+	bool bDead = false;
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
 	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }

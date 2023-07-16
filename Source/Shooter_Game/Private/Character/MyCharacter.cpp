@@ -1,4 +1,4 @@
- // Fill out your copyright notice in the Description page of Project Settings.
+  // Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Character/MyCharacter.h"
@@ -1149,6 +1149,7 @@ void AMyCharacter::EndStun()
 }
 void AMyCharacter::Die()
 {
+	bDead = true;
 	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 	if (AnimInstance && DeathMontage)
 	{
