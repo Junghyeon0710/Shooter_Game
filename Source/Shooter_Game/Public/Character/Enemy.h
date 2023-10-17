@@ -78,7 +78,7 @@ protected:
 
 	void DoDamage(class AMyCharacter* Victim);
 
-	void SpawnBlood(AMyCharacter* Victime, FName SocketName);
+	void SpawnBlood(class AMyCharacter* Victime, FName SocketName);
 
 	// 캐릭터를 스턴시키기
 	void StunCharacter(AMyCharacter* Victime);

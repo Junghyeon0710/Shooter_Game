@@ -66,6 +66,7 @@ void AEnemy::BeginPlay()
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 	//AI 컨트롤러 가져오기
+	
 	EnemyController = Cast<AMyAIController>(GetController());
 
 	if (EnemyController)

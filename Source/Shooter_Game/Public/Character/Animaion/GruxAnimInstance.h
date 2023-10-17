@@ -22,7 +22,7 @@ public:
 
 private:
 	UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category = Movemont,meta=(AllowprivateAccess="true"))
-	float Speed;
+	float EnemySpeed;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movemont, meta = (AllowprivateAccess = "true"))
 	class AEnemy* Enemy;

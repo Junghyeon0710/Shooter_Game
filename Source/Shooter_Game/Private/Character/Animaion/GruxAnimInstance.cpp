@@ -15,7 +15,7 @@ void UGruxAnimInstance::UpdateAnimationProperties(float DeltaTime)
 	{
 		FVector Velocity = Enemy->GetVelocity();
 		Velocity.Z = 0.f;
-		Speed = Velocity.Size();
+		EnemySpeed = Velocity.Size();
 	}
 }
 

@@ -24,7 +24,5 @@ private:
 	UPROPERTY(BlueprintReadWrite, Category = "Ai Behavior",meta = (AllowPrivateAccess = "true"))
 	class UBehaviorTreeComponent* BehaviorTreeComponet;
 public:
-
 	FORCEINLINE UBlackboardComponent* GetBlackboardComponent() const { return BlackboardComponent; }
-
 };

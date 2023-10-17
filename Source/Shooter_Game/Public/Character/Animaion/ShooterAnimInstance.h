@@ -26,7 +26,7 @@ class SHOOTER_GAME_API UShooterAnimInstance : public UAnimInstance
 	GENERATED_BODY()
 public:
 	UFUNCTION(BlueprintCallable)
-		void UpdateAnimationProperties(float DeltaTime);
+	void UpdateAnimationProperties(float DeltaTime);
 
 	virtual void NativeInitializeAnimation() override;
 protected:
@@ -34,15 +34,21 @@ protected:
 	/** 자리에서 돌았나 */
 	void TurnInPlace();
 	
-	/**달릴 때 기울리는걸 계산 */
+	/**달릴 때 기우는거 계산 */
 	void Lean(float DeltaTime);
 private:
+	//캐릭터 속성 업데이트
+	void UpdateCharacterProperties();
+	void UpdateRotationAndOffsetState();
+	void UpdateRotationProperties();
+	void UpdateEquippedWeaponType();
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
-		class AMyCharacter* ShooterCharacter;
+	class AMyCharacter* ShooterCharacter;
 
 	/** 캐릭터 스피드*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
-	float Speed = 0;
+	float CharacterSpeed = 0;
 
 	/** 캐릭터 공중에 있는지*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
@@ -64,10 +70,10 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	bool bAiming = false;
 	
-	/**캐릭터 Yaw ,가만히 있을때 업데이트 됨 ,Turn In Plac 함수*/
+	/**캐릭터 Yaw ,가만히 있을때 업데이트 됨 ,Turn In Place 함수*/
 	float TICCharacaterYaw = 0.f;
 
-	//캐릭터 마지막 프레임 Yaw 가만히 있을때 업데이트 됨 ,Turn In Plac 함수
+	//캐릭터 마지막 프레임 Yaw 가만히 있을때 업데이트 됨 ,Turn In Place 함수
 	float TICCharacterYawLastFrame = 0.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
@@ -87,15 +93,14 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
 	bool bReloading = false;
 
-	/** 리로딩중*/
+	/** 장착중인가*/
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
 	bool bEquipping = false;
-
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Turn In Place", meta = (AllowPrivateAccess = "true"))
 	EOffsetState OffsetState = EOffsetState::EOS_Hip;
 
-	//캐릭터 지금 Yaw
+	//캐릭터 현재 Yaw
 	FRotator CharacterYaw = FRotator(0.f);
 
 	//캐릭터 마지막 Yaw
@@ -104,10 +109,9 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Lean, meta = (AllowPrivateAccess = "true"))
 	float YawDelta =0.f;
 
-	// 웅크리고 앉았나
+	// 앉았나
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Crouching, meta = (AllowPrivateAccess = "true"))
 	bool bCrouching = false;
-
 
 	//회전 조준에 따라 반동 무게 변경
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = combat, meta = (AllowPrivateAccess = "true"))

@@ -9,82 +9,25 @@
 
 void UShooterAnimInstance::UpdateAnimationProperties(float DeltaTime)
 {
+	// ShooterCharacter가 아직 할당되지 않았다면 할당합니다.
 	if (ShooterCharacter == nullptr)
 	{
 		ShooterCharacter = Cast<AMyCharacter>(TryGetPawnOwner());
 	}
+
 	if (ShooterCharacter)
 	{
-		bCrouching = ShooterCharacter->GetCrouching();
-		bReloading = ShooterCharacter->GetCombatState() == ECombatState::ECS_Reloading;
-		bEquipping = ShooterCharacter->GetCombatState() == ECombatState::ECS_Equipping;
-		bShoulUseFABRIK = ShooterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied || ShooterCharacter->GetCombatState() == ECombatState::ECS_FireTimerInProgress;
-		
-		FVector Veloctiy = ShooterCharacter->GetVelocity();
-		Veloctiy.Z = 0;
-		Speed = Veloctiy.Size();
+		// 캐릭터 속성 업데이트
+		UpdateCharacterProperties();
 
-		//캐릭터가 공중에 있나
-		bIsInAir = ShooterCharacter->GetCharacterMovement()->IsFalling();
+		// 회전 및 상체 동작 상태 업데이트
+		UpdateRotationAndOffsetState();
 
-		//캐릭터가 움직이나
-		if (ShooterCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f)
-		{
-			//업데이트할 때마다 입력 벡터에서 계산된 현재 가속도를 반환합니다.
-
-			bIsAccelerating = true;
-		}
-		else
-		{
-			bIsAccelerating = false;
-		}
-
-		//Pawn의 조준 회전을 반환합니다.
-		FRotator AimRotation = ShooterCharacter->GetBaseAimRotation();
-
-		//x축의 방향을 빌드
-		FRotator MovementRotation = 
-			UKismetMathLibrary::MakeRotFromX(
-			ShooterCharacter->GetVelocity()); //캐릭터 속도
-
-		//속도에서 회전을 빼주고 정규화
-		MoventOffsetYaw = UKismetMathLibrary::NormalizedDeltaRotator(
-			MovementRotation,
-			AimRotation).Yaw;
-		if (ShooterCharacter->GetVelocity().Size() > 0.f)
-		{
-			LastMoventOffsetYaw = MoventOffsetYaw;
-		}
-	
-
-	/*	if (GEngine)
-		{
-			GEngine->AddOnScreenDebugMessage(1, 0.f, FColor::White, FString::Printf(TEXT("Base Aim Rotation: %f"), MoventOffsetYaw));
-		}*/
-
-		bAiming = ShooterCharacter->GetAiming();
-
-		if (bReloading)
-		{
-			OffsetState = EOffsetState::EOS_Reloading;
-		}
-		else if(bIsInAir)
-		{
-			OffsetState = EOffsetState::EOS_InAir;
-		}
-		else if (ShooterCharacter->GetAiming())
-		{
-			OffsetState = EOffsetState::EOS_Aiming;
-		}
-		else
-		{
-			OffsetState = EOffsetState::EOS_Hip;
-		}
-		if (ShooterCharacter->GetEquippedWeapon())
-		{
-			EquippedWeaponType = ShooterCharacter->GetEquippedWeapon()->GetWeaponType();
-		}
+		// 회전 속성 업데이트
+		UpdateRotationProperties();
 	}
+
+	// 턴인플레이스와 기울임 동작 업데이트
 	TurnInPlace();
 	Lean(DeltaTime);
 }
@@ -102,7 +45,7 @@ void UShooterAnimInstance::TurnInPlace()
 
 	if (Speed > 0 || bIsInAir)
 	{
-		
+
 		// 돌 필요가 없다
 		RootYawOffset = 0.f;
 		TICCharacaterYaw = ShooterCharacter->GetActorRotation().Yaw;
@@ -146,7 +89,20 @@ void UShooterAnimInstance::TurnInPlace()
 			bTurningPlace = false;
 		}
 	}
-		if (bTurningPlace)
+	if (bTurningPlace)
+	{
+		if (bReloading || bEquipping)
+		{
+			RecoilWeight = 1.f;
+		}
+		else
+		{
+			RecoilWeight = 0.f;
+		}
+	}
+	else // 안 돌고 있을때
+	{
+		if (bCrouching)
 		{
 			if (bReloading || bEquipping)
 			{
@@ -154,37 +110,24 @@ void UShooterAnimInstance::TurnInPlace()
 			}
 			else
 			{
-				RecoilWeight = 0.f;
+				RecoilWeight = 0.1f;
 			}
-		}
-		else // 안 돌고 있을때
-		{
-			if (bCrouching)
-			{
-				if (bReloading || bEquipping)
-				{
-					RecoilWeight = 1.f;
-				}
-				else
-				{
-					RecoilWeight = 0.1f;
-				}
 
+		}
+		else
+		{
+			if (bAiming || bReloading || bEquipping)
+			{
+				RecoilWeight = 1.f;
 			}
 			else
 			{
-				if (bAiming || bReloading || bEquipping)
-				{
-					RecoilWeight = 1.f;
-				}
-				else
-				{
-					RecoilWeight = 0.5f;
-				}
+				RecoilWeight = 0.5f;
 			}
 		}
-	
-	
+	}
+
+
 }
 
 void UShooterAnimInstance::Lean(float DeltaTime)
@@ -202,4 +145,71 @@ void UShooterAnimInstance::Lean(float DeltaTime)
 
 	YawDelta = FMath::Clamp(Interp, -90, 90);
 
+}
+
+void UShooterAnimInstance::UpdateCharacterProperties()
+{
+	// 캐릭터의 기본 동작, 조준 여부, 리로딩 상태, 장비 장착 상태, FABRIK 사용 여부를 업데이트합니다.
+	bCrouching = ShooterCharacter->GetCrouching();
+	bAiming = ShooterCharacter->GetAiming();
+	bReloading = ShooterCharacter->GetCombatState() == ECombatState::ECS_Reloading;
+	bEquipping = ShooterCharacter->GetCombatState() == ECombatState::ECS_Equipping;
+	bShoulUseFABRIK = ShooterCharacter->GetCombatState() == ECombatState::ECS_Unoccupied || ShooterCharacter->GetCombatState() == ECombatState::ECS_FireTimerInProgress;
+
+	// 캐릭터 속도 업데이트
+	FVector Velocity = ShooterCharacter->GetVelocity();
+	Velocity.Z = 0;
+	CharacterSpeed = Velocity.Size();
+
+	// 캐릭터가 공중에 있는지 여부 업데이트
+	bIsInAir = ShooterCharacter->GetCharacterMovement()->IsFalling();
+
+	// 캐릭터가 움직이는지 여부 업데이트
+	bIsAccelerating = ShooterCharacter->GetCharacterMovement()->GetCurrentAcceleration().Size() > 0.f;
+}
+
+void UShooterAnimInstance::UpdateRotationAndOffsetState()
+{
+	// 캐릭터의 회전 및 상체 동작 상태 업데이트
+	if (bReloading)
+	{
+		OffsetState = EOffsetState::EOS_Reloading;
+	}
+	else if (bIsInAir)
+	{
+		OffsetState = EOffsetState::EOS_InAir;
+	}
+	else if (bAiming)
+	{
+		OffsetState = EOffsetState::EOS_Aiming;
+	}
+	else
+	{
+		OffsetState = EOffsetState::EOS_Hip;
+	}
+}
+
+void UShooterAnimInstance::UpdateRotationProperties()
+{
+	//Pawn의 조준 회전을 반환
+	FRotator AimRotation = ShooterCharacter->GetBaseAimRotation();
+	//x축의 방향을 빌드
+	FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(ShooterCharacter->GetVelocity()); //캐릭터 속도
+	//속도에서 회전을 빼주고 정규화
+	MoventOffsetYaw = UKismetMathLibrary::NormalizedDeltaRotator(MovementRotation, AimRotation).Yaw;
+	
+	// 캐릭터 속도가 0보다 크면 마지막 회전 속성을 업데이트
+	if (ShooterCharacter->GetVelocity().Size() > 0.f)
+	{
+		LastMoventOffsetYaw = MoventOffsetYaw;
+	}
+}
+
+void UShooterAnimInstance::UpdateEquippedWeaponType()
+{
+	// 장착된 무기의 유형 업데이트
+	if (ShooterCharacter->GetEquippedWeapon())
+	{
+		EquippedWeaponType = ShooterCharacter->GetEquippedWeapon()->GetWeaponType();
+	}
 }

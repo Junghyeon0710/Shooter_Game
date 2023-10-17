@@ -29,5 +29,4 @@ void AMyAIController::OnPossess(APawn* InPawn)
 			BlackboardComponent->InitializeBlackboard(*(Enemy->GetBehaviorTree()->BlackboardAsset));
 		}
 	}
-
 }

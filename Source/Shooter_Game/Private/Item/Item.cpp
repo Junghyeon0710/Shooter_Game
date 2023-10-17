@@ -27,7 +27,7 @@ AItem::AItem()
 	PickuWidget = CreateDefaultSubobject<UWidgetComponent>(TEXT("PickukWidget"));
 	PickuWidget->SetupAttachment(RootComponent);
 
-	AreaSphere = CreateAbstractDefaultSubobject<USphereComponent>(TEXT("AreaSphere"));
+	AreaSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AreaSphere"));
 	AreaSphere->SetupAttachment(RootComponent);
 
 }
