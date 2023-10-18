@@ -12,7 +12,7 @@
 AExplosive::AExplosive()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 
 	ExplosiveMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ExplosvieMesh"));
 	SetRootComponent(ExplosiveMesh);
@@ -26,14 +26,6 @@ void AExplosive::BeginPlay()
 {
 	Super::BeginPlay();
 	
-}
-
-// Called every frame
-void AExplosive::Tick(float DeltaTime)
-{
-
-	Super::Tick(DeltaTime);
-
 }
 
 void AExplosive::BulletHit_Implementation(FHitResult HitResult, AActor* Shooter, AController* ShooterController)
@@ -54,7 +46,6 @@ void AExplosive::BulletHit_Implementation(FHitResult HitResult, AActor* Shooter,
 
 	for (auto Actor : OverlappingActors)
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s"),*Actor->GetName());
 		UGameplayStatics::ApplyDamage(
 			Actor,
 			BaseDamage,

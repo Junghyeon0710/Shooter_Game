@@ -17,7 +17,6 @@ class SHOOTER_GAME_API AAmmo : public AItem
 public:
 	AAmmo(); 
 
-	virtual void Tick(float DeltaTime) override;
 protected:
 	virtual void BeginPlay() override;
 
@@ -45,6 +44,7 @@ private:
 	/** 탄약을 줍기위한 구 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Ammo, meta = (AllowPrivateAccess = "true"))
 	class USphereComponent* AmmoCollisionSphere;
+
 public:
 	FORCEINLINE UStaticMeshComponent* GetAmmoMesh() const { return AmmoMesh; }
 	FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }

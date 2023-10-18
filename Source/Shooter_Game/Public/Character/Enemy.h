@@ -28,6 +28,7 @@ protected:
 	void HideHealthBar();
 
 	void PlayHitMontage(FName Section,float PlayRate =1.0f);
+
 	UFUNCTION(BlueprintCallable)
 	void PlayAttackMontage(FName Section, float PlayRate = 1.0f);
 
@@ -43,9 +44,6 @@ protected:
 
 	UFUNCTION()
 	void AgroSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
-	UFUNCTION()
-	void AgroSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 	
 	UFUNCTION(BlueprintCallable)
 	void SetStunned(bool Stunned);
@@ -92,10 +90,12 @@ protected:
 
 private:
 
+	void SetupBehaviorTree();
+	void SetupWeaponCollisions();
+
 	/** 맞았을 때 파티클*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	class UParticleSystem* ImpactParticles;
-
 
 	/** 맞았을 때 사운드*/
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -231,7 +231,6 @@ public:
 	
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
-	
 public:
 	FORCEINLINE FString GetHeadBone() const { return HeadBone; }
 

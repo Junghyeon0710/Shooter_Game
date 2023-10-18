@@ -42,6 +42,9 @@ private:
 	void UpdateRotationAndOffsetState();
 	void UpdateRotationProperties();
 	void UpdateEquippedWeaponType();
+	void ResetRotation();
+	void UpdateCharacterRotationAndCurveValues(AActor* ShooterCharacter, float& TICCharacterYawLastFrame, float& TICCharacaterYaw, float& RootYawOffset, bool& bTurningPlace, float& RotationCurveValueLastFrame);
+	void UpdateRecoilWeight();
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	class AMyCharacter* ShooterCharacter;

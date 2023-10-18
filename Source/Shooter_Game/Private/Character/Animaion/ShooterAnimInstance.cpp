@@ -43,91 +43,17 @@ void UShooterAnimInstance::TurnInPlace()
 
 	Pitch = ShooterCharacter->GetBaseAimRotation().Pitch;
 
-	if (Speed > 0 || bIsInAir)
+	// 캐릭터가 움직이거나 공중에 있는 경우 회전 필요 없음
+	if (CharacterSpeed > 0 || bIsInAir)
 	{
-
-		// 돌 필요가 없다
-		RootYawOffset = 0.f;
-		TICCharacaterYaw = ShooterCharacter->GetActorRotation().Yaw;
-		TICCharacterYawLastFrame = TICCharacaterYaw;
-		RotationCurveValueLastFrame = 0.f;
-		RotationCurve = 0.f;
+		ResetRotation();
 	}
 	else
 	{
-		TICCharacterYawLastFrame = TICCharacaterYaw;
-		TICCharacaterYaw = ShooterCharacter->GetActorRotation().Yaw;
-		const float TIPYawDelta = TICCharacaterYaw - TICCharacterYawLastFrame;
-
-		//루트 yaw offset, -180 , 180 사이
-		// 각도를 (-180, 180] 범위로 고정합니다. (NormalizeAxis)
-		RootYawOffset = UKismetMathLibrary::NormalizeAxis(RootYawOffset - TIPYawDelta);
-
-		const float Turning = GetCurveValue(TEXT("Turning"));
-		if (Turning > 0)
-		{
-			bTurningPlace = true;
-
-			RotationCurveValueLastFrame = RotationCurve;
-			RotationCurve = GetCurveValue(TEXT("Rotation"));
-			const float DeltaRotiation = RotationCurve - RotationCurveValueLastFrame;
-
-			// RootYawOffset > 0 -> 왼쪽으로 회전 , RootYawOffset <0, ->오른쪽으로 회전
-			RootYawOffset > 0 ? RootYawOffset -= DeltaRotiation : RootYawOffset += DeltaRotiation;
-
-			const float ABSRootyawOffset = FMath::Abs(RootYawOffset);
-
-
-			if (ABSRootyawOffset > 90.f)
-			{
-				const float YawExcess = ABSRootyawOffset - 90.f;
-				RootYawOffset > 0 ? RootYawOffset -= YawExcess : RootYawOffset += YawExcess;
-			}
-		}
-		else
-		{
-			bTurningPlace = false;
-		}
+		//회전 
+		UpdateCharacterRotationAndCurveValues(ShooterCharacter,TICCharacterYawLastFrame,TICCharacaterYaw,RootYawOffset,bTurningPlace,RotationCurveValueLastFrame);
 	}
-	if (bTurningPlace)
-	{
-		if (bReloading || bEquipping)
-		{
-			RecoilWeight = 1.f;
-		}
-		else
-		{
-			RecoilWeight = 0.f;
-		}
-	}
-	else // 안 돌고 있을때
-	{
-		if (bCrouching)
-		{
-			if (bReloading || bEquipping)
-			{
-				RecoilWeight = 1.f;
-			}
-			else
-			{
-				RecoilWeight = 0.1f;
-			}
-
-		}
-		else
-		{
-			if (bAiming || bReloading || bEquipping)
-			{
-				RecoilWeight = 1.f;
-			}
-			else
-			{
-				RecoilWeight = 0.5f;
-			}
-		}
-	}
-
-
+	UpdateRecoilWeight();
 }
 
 void UShooterAnimInstance::Lean(float DeltaTime)
@@ -211,5 +137,75 @@ void UShooterAnimInstance::UpdateEquippedWeaponType()
 	if (ShooterCharacter->GetEquippedWeapon())
 	{
 		EquippedWeaponType = ShooterCharacter->GetEquippedWeapon()->GetWeaponType();
+	}
+}
+
+void UShooterAnimInstance::ResetRotation()
+{
+	// 캐릭터가 움직이지 않을 때 루트 yaw offset을 초기화
+	RootYawOffset = 0.f;
+	TICCharacaterYaw = ShooterCharacter->GetActorRotation().Yaw;
+	TICCharacterYawLastFrame = TICCharacaterYaw;
+	RotationCurveValueLastFrame = 0.f;
+	RotationCurve = 0.f;
+}
+
+void UShooterAnimInstance::UpdateCharacterRotationAndCurveValues(AActor* ShooterCharacter, float& TICCharacterYawLastFrame, float& TICCharacaterYaw, float& RootYawOffset, bool& bTurningPlace, float& RotationCurveValueLastFrame)
+{
+	TICCharacterYawLastFrame = TICCharacaterYaw;
+	TICCharacaterYaw = ShooterCharacter->GetActorRotation().Yaw;
+	const float TIPYawDelta = TICCharacaterYaw - TICCharacterYawLastFrame;
+
+	//루트 yaw offset, -180 , 180 사이
+	// 각도를 (-180, 180] 범위로 고정합니다. (NormalizeAxis)
+	RootYawOffset = UKismetMathLibrary::NormalizeAxis(RootYawOffset - TIPYawDelta);
+
+	const float Turning = GetCurveValue(TEXT("Turning"));
+	if (Turning > 0)
+	{
+		bTurningPlace = true;
+
+		RotationCurveValueLastFrame = RotationCurve;
+		RotationCurve = GetCurveValue(TEXT("Rotation"));
+
+		// DeltaRotation은 현재 프레임과 이전 프레임의 회전 커브 차이를 나타냄
+		const float DeltaRotiation = RotationCurve - RotationCurveValueLastFrame;
+
+		// RootYawOffset > 0 -> 왼쪽으로 회전 , RootYawOffset <0, ->오른쪽으로 회전
+		RootYawOffset > 0 ? RootYawOffset -= DeltaRotiation : RootYawOffset += DeltaRotiation;
+
+		// RootYawOffset의 절대값을 얻음
+		const float ABSRootyawOffset = FMath::Abs(RootYawOffset);
+
+		if (ABSRootyawOffset > 90.f)
+		{
+			// RootYawOffset이 90보다 크면 조정
+			const float YawExcess = ABSRootyawOffset - 90.f;
+			RootYawOffset > 0 ? RootYawOffset -= YawExcess : RootYawOffset += YawExcess;
+		}
+	}
+	else
+	{
+		bTurningPlace = false;
+	}
+}
+
+void UShooterAnimInstance::UpdateRecoilWeight()
+{
+	// 턴인플레이 중 또는 특정 상태에 따라 리코일 가중치 설정
+	if (bTurningPlace)
+	{
+		RecoilWeight = (bReloading || bEquipping) ? 1.f : 0.f;
+	}
+	else
+	{
+		if (bCrouching)
+		{
+			RecoilWeight = (bReloading || bEquipping) ? 1.f : 0.1f;
+		}
+		else
+		{
+			RecoilWeight = (bAiming || bReloading || bEquipping) ? 1.f : 0.5f;
+		}
 	}
 }

@@ -34,6 +34,10 @@ AEnemy::AEnemy()
 
 	RightWeaponCollision = CreateDefaultSubobject<UBoxComponent>(TEXT("Right Weapon Collision"));
 	RightWeaponCollision->SetupAttachment(GetMesh(), FName("weaponR_Socket"));
+
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
 }
 
 // Called when the game starts or when spawned
@@ -50,76 +54,18 @@ void AEnemy::BeginPlay()
 	//무기 겹치면 데미지
 	LeftWeaponCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::OnLeftWeaponOverlap);
 	RightWeaponCollision->OnComponentBeginOverlap.AddDynamic(this, &AEnemy::OnRightWeaponOverlap);
-	
-	//공격전에 데미지 주면 안됨
-	LeftWeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	LeftWeaponCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	LeftWeaponCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	LeftWeaponCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+		
+	// 무기 콜리전 설정
+	SetupWeaponCollisions();
 
-	RightWeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	RightWeaponCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	RightWeaponCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-	RightWeaponCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	//AI 컨트롤러 가져오기
-	
-	EnemyController = Cast<AMyAIController>(GetController());
-
-	if (EnemyController)
-	{
-		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("CanAttack"), true);
-	}
-
-	const FVector WorldPatrolPoint = UKismetMathLibrary::TransformLocation(
-		GetActorTransform(),PatrolPoint);
-	const FVector WorldPatrolPoint2 = UKismetMathLibrary::TransformLocation(
-		GetActorTransform(), PatrolPoint2);
-
-	DrawDebugSphere(
-		GetWorld(),
-		WorldPatrolPoint,
-		25.f,
-		12,
-		FColor::Red,
-		true
-	);
-
-	DrawDebugSphere(
-		GetWorld(),
-		WorldPatrolPoint2,
-		25.f,
-		12,
-		FColor::Red,
-		true
-	);
-	if (EnemyController)
-	{
-		EnemyController->GetBlackboardComponent()->SetValueAsVector(
-			TEXT("PatrolPoint"),
-			WorldPatrolPoint);
-
-		EnemyController->GetBlackboardComponent()->SetValueAsVector(
-			TEXT("PatrolPoint2"),
-			WorldPatrolPoint2);
-
-		EnemyController->RunBehaviorTree(BeHaviorTree);
-	}
-
-
+	//비헤어트리 설정
+	SetupBehaviorTree();
 }
 
 void AEnemy::ShowHealthBar_Implementation()
 {
 	GetWorldTimerManager().ClearTimer(HealthBarTimer);
-	GetWorldTimerManager().SetTimer(
-		HealthBarTimer,
-		this,
-		&AEnemy::HideHealthBar,
-		HealthBarDisplayTime);
+	GetWorldTimerManager().SetTimer(HealthBarTimer, this, &AEnemy::HideHealthBar, HealthBarDisplayTime);
 }
 
 void AEnemy::PlayHitMontage(FName Section, float PlayRate)
@@ -132,15 +78,10 @@ void AEnemy::PlayHitMontage(FName Section, float PlayRate)
 			AnimInstance->Montage_Play(HitMontage, PlayRate);
 			AnimInstance->Montage_JumpToSection(Section, HitMontage);
 		}
-
-		
+	
 		bCanHitReact = false;
 		const float HitReactTime = FMath::FRandRange(HitReactTimeMin, HitRactTimeMax);
-		GetWorldTimerManager().SetTimer(
-			HitReactTimer, 
-			this,
-			&AEnemy::ResetHitReactTimer, 
-			HitReactTime);
+		GetWorldTimerManager().SetTimer(HitReactTimer, this, &AEnemy::ResetHitReactTimer, HitReactTime);
 	}
 
 }
@@ -154,12 +95,7 @@ void AEnemy::PlayAttackMontage(FName Section, float PlayRate)
 		AnimInstance->Montage_JumpToSection(Section, AttackMontage);
 	}
 	bCanAttack = false;
-	GetWorldTimerManager().SetTimer(
-		AttackWaitTimer,
-		this,
-		&AEnemy::ResetCanAttack,
-		AttackWaitTime
-	);
+	GetWorldTimerManager().SetTimer(AttackWaitTimer, this, &AEnemy::ResetCanAttack, AttackWaitTime);
 	if (EnemyController)
 	{
 		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("CanAttack"), false);
@@ -179,11 +115,7 @@ void AEnemy::StoreHitNumber(UUserWidget* HitNumber, FVector Location)
 	FTimerDelegate HitNumberDelegate;
 	HitNumberDelegate.BindUFunction(this, FName("DestoryNumber"), HitNumber);
 
-	GetWorldTimerManager().SetTimer(
-		HitNumberTimer,
-		HitNumberDelegate,
-		HitNumberDestroyTime,
-		false);
+	GetWorldTimerManager().SetTimer(HitNumberTimer, HitNumberDelegate, HitNumberDestroyTime, false);
 		
 }
 
@@ -200,10 +132,7 @@ void AEnemy::UpdateHitNumbers()
 		UUserWidget* HitNumber = HitPair.Key;
 		const FVector Location = HitPair.Value;
 		FVector2D ScrePosition;
-		UGameplayStatics::ProjectWorldToScreen(
-			GetWorld()->GetFirstPlayerController(),
-			Location,
-			ScrePosition);
+		UGameplayStatics::ProjectWorldToScreen(GetWorld()->GetFirstPlayerController(), Location, ScrePosition);
 		HitNumber->SetPositionInViewport(ScrePosition);
 	}
 }
@@ -221,10 +150,6 @@ void AEnemy::AgroSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 			TEXT("Target"),
 			Character);
 	}
-}
-
-void AEnemy::AgroSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
 }
 
 void AEnemy::SetStunned(bool Stunned)
@@ -248,7 +173,6 @@ void AEnemy::CombatRangeOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 			EnemyController->GetBlackboardComponent()->SetValueAsBool(TEXT("InAttackRange"), true);
 		}
 	}
-
 }
 
 void AEnemy::CombatRangeEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -263,7 +187,6 @@ void AEnemy::CombatRangeEndOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 			EnemyController->GetBlackboardComponent()->SetValueAsBool(TEXT("InAttackRange"), false);
 		}
 	}
-	
 }
 
 FName AEnemy::GetAttackSectionName()
@@ -419,6 +342,48 @@ void AEnemy::FinishDeath()
 	//Destroy();
 }
 
+void AEnemy::SetupBehaviorTree()
+{
+	EnemyController = Cast<AMyAIController>(GetController());
+
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("CanAttack"), true);
+	}
+
+	const FVector WorldPatrolPoint = UKismetMathLibrary::TransformLocation(
+		GetActorTransform(), PatrolPoint);
+	const FVector WorldPatrolPoint2 = UKismetMathLibrary::TransformLocation(
+		GetActorTransform(), PatrolPoint2);
+
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsVector(
+			TEXT("PatrolPoint"),
+			WorldPatrolPoint);
+
+		EnemyController->GetBlackboardComponent()->SetValueAsVector(
+			TEXT("PatrolPoint2"),
+			WorldPatrolPoint2);
+
+		EnemyController->RunBehaviorTree(BeHaviorTree);
+	}
+}
+
+void AEnemy::SetupWeaponCollisions()
+{
+	//공격전에 데미지 주면 안됨
+	LeftWeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	LeftWeaponCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	LeftWeaponCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	LeftWeaponCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+
+	RightWeaponCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	RightWeaponCollision->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	RightWeaponCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	RightWeaponCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+}
+
 // Called every frame
 void AEnemy::Tick(float DeltaTime)
 {
@@ -471,7 +436,6 @@ float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AC
 	const float Stunned = FMath::FRandRange(0.1f, 1.f);
 	if (Stunned <= StunChance)
 	{
-		//
 		PlayHitMontage(FName("Front"));
 		SetStunned(true);
 	}

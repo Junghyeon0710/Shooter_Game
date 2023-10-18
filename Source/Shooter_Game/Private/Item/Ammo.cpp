@@ -19,13 +19,6 @@ AAmmo::AAmmo()
 	AmmoCollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("AmmoCollisionSphere"));
 	AmmoCollisionSphere->SetupAttachment(RootComponent);
 	AmmoCollisionSphere->SetSphereRadius(50.f);
-
-
-}
-
-void AAmmo::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
 }
 
 void AAmmo::BeginPlay()
@@ -50,8 +43,7 @@ void AAmmo::SetItemProperties(EItemState State)
 		AmmoMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 
 		break;
-	case EItemState::EIS_EquipInterping:
-		
+	case EItemState::EIS_EquipInterping:	
 		// 아이템 속성 변경
 		AmmoMesh->SetSimulatePhysics(false);
 		AmmoMesh->SetEnableGravity(false);
@@ -94,7 +86,7 @@ void AAmmo::AmmoSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* 
 {
 	if (OtherActor)
 	{
-		auto OverlappedCharacter = Cast<AMyCharacter>(OtherActor);
+		AMyCharacter* OverlappedCharacter = Cast<AMyCharacter>(OtherActor);
 		if (OverlappedCharacter)
 		{
 			StartItemCurve(OverlappedCharacter);
