@@ -43,7 +43,7 @@ private:
 	void UpdateRotationProperties();
 	void UpdateEquippedWeaponType();
 	void ResetRotation();
-	void UpdateCharacterRotationAndCurveValues(AActor* ShooterCharacter, float& TICCharacterYawLastFrame, float& TICCharacaterYaw, float& RootYawOffset, bool& bTurningPlace, float& RotationCurveValueLastFrame);
+	void UpdateCharacterRotationAndCurveValues(AActor* Character, float& FCharacterYawLastFrame, float& CharacaterYaw, float& CharacterRootYawOffset, bool& bCharacterTurningPlace, float& CharacterRotationCurveValueLastFrame);
 	void UpdateRecoilWeight();
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))

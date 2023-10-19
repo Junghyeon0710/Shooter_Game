@@ -150,43 +150,43 @@ void UShooterAnimInstance::ResetRotation()
 	RotationCurve = 0.f;
 }
 
-void UShooterAnimInstance::UpdateCharacterRotationAndCurveValues(AActor* ShooterCharacter, float& TICCharacterYawLastFrame, float& TICCharacaterYaw, float& RootYawOffset, bool& bTurningPlace, float& RotationCurveValueLastFrame)
+void UShooterAnimInstance::UpdateCharacterRotationAndCurveValues(AActor* Character, float& FCharacterYawLastFrame, float& CharacaterYaw, float& CharacterRootYawOffset, bool& bCharacterTurningPlace, float& CharacterRotationCurveValueLastFrame)
 {
-	TICCharacterYawLastFrame = TICCharacaterYaw;
-	TICCharacaterYaw = ShooterCharacter->GetActorRotation().Yaw;
-	const float TIPYawDelta = TICCharacaterYaw - TICCharacterYawLastFrame;
+	FCharacterYawLastFrame = CharacaterYaw;
+	CharacaterYaw = Character->GetActorRotation().Yaw;
+	const float TIPYawDelta = CharacaterYaw - FCharacterYawLastFrame;
 
 	//루트 yaw offset, -180 , 180 사이
 	// 각도를 (-180, 180] 범위로 고정합니다. (NormalizeAxis)
-	RootYawOffset = UKismetMathLibrary::NormalizeAxis(RootYawOffset - TIPYawDelta);
+	CharacterRootYawOffset = UKismetMathLibrary::NormalizeAxis(CharacterRootYawOffset - TIPYawDelta);
 
 	const float Turning = GetCurveValue(TEXT("Turning"));
 	if (Turning > 0)
 	{
-		bTurningPlace = true;
+		bCharacterTurningPlace = true;
 
-		RotationCurveValueLastFrame = RotationCurve;
+		CharacterRotationCurveValueLastFrame = RotationCurve;
 		RotationCurve = GetCurveValue(TEXT("Rotation"));
 
 		// DeltaRotation은 현재 프레임과 이전 프레임의 회전 커브 차이를 나타냄
-		const float DeltaRotiation = RotationCurve - RotationCurveValueLastFrame;
+		const float DeltaRotiation = RotationCurve - CharacterRotationCurveValueLastFrame;
 
 		// RootYawOffset > 0 -> 왼쪽으로 회전 , RootYawOffset <0, ->오른쪽으로 회전
-		RootYawOffset > 0 ? RootYawOffset -= DeltaRotiation : RootYawOffset += DeltaRotiation;
+		CharacterRootYawOffset > 0 ? CharacterRootYawOffset -= DeltaRotiation : CharacterRootYawOffset += DeltaRotiation;
 
 		// RootYawOffset의 절대값을 얻음
-		const float ABSRootyawOffset = FMath::Abs(RootYawOffset);
+		const float ABSRootyawOffset = FMath::Abs(CharacterRootYawOffset);
 
 		if (ABSRootyawOffset > 90.f)
 		{
 			// RootYawOffset이 90보다 크면 조정
 			const float YawExcess = ABSRootyawOffset - 90.f;
-			RootYawOffset > 0 ? RootYawOffset -= YawExcess : RootYawOffset += YawExcess;
+			CharacterRootYawOffset > 0 ? CharacterRootYawOffset -= YawExcess : CharacterRootYawOffset += YawExcess;
 		}
 	}
 	else
 	{
-		bTurningPlace = false;
+		bCharacterTurningPlace = false;
 	}
 }
 

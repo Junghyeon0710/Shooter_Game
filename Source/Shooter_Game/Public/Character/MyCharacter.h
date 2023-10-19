@@ -43,6 +43,9 @@ class SHOOTER_GAME_API AMyCharacter : public ACharacter
 public:
 	// Sets default values for this character's properties
 	AMyCharacter();
+	virtual void Tick(float DeltaTime) override;
+	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 protected:
 	// Called when the game starts or when spawned
@@ -122,12 +125,12 @@ protected:
 	void AimingButtonReleased();
 
 	void SelectButtonPressed();
-	void SelectButtonReleased();
 
 	//R키 눌렀나
 	void ReloadButtonPressed();
 	//무기 재장전
 	void ReloadWeapon();
+	void ReloadMontagePlay();
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
 
@@ -230,16 +233,23 @@ protected:
 
 	UFUNCTION(BlueprintCallable)
 	void FinishDeath();
-public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-	
-	// Called to bind functionality to input
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 private:
+	void InitializeInputSystem();
+	void InitializeCameraFOV();
+	void EquipDefaultWeapon();
+	void ResetPicukSoundTimer();
+	void ResetEquipSoundTimer();
+	void MarkCharacterAsDead(AController* EventInstigator);
+	void ReloadAmmoForEquippedWeapon();
+	//에니메이션 블루프린트가 클립을 잡으면 실행시키는 notify
+	UFUNCTION(BlueprintCallable)
+	void GrabClip();
+
+	//에니메이션 블루프린트가 클립을 재장착 실행시키는 notify
+	UFUNCTION(BlueprintCallable)
+	void ReleaseClip();
+
 	UPROPERTY(VisibleAnywhere)
 	class USpringArmComponent* SpringArm;
 
@@ -278,12 +288,6 @@ private:
 	float MouseAimingTurnRate =0.2f;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"), meta = (ClampMin = "0.0", Clamp = "1.0", UIMin = "0.0", UIMax = "1.0"))
 	float MouseAimingLookUpRate =0.2f;
-
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite,Category = Combat, meta = (AllowPrivateAccess = "true"))
-	//class USoundCue* FireSound;
-
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
-	//class UParticleSystem* MuzzleFalsh;
 
 	/** 히트지점 파티클 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Combat, meta = (AllowPrivateAccess = "true"))
@@ -351,12 +355,8 @@ private:
 	/*발사할 때 트루  타이머 기다릴때 거짓**/
 	bool bShouldFire = true;
 
-	///**자동 총쏘기 시간 */
-	//float AutoAmticFireRate = 0.1f;
-
 	/** 총쏘는 사이 타이머*/
 	FTimerHandle AutoFireTimer;
-
 
 	//총알 발사 타이머 변수
 	float ShootTimeDuration = 0.05f;
@@ -407,14 +407,6 @@ private:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
 	ECombatState CombatState = ECombatState::ECS_Unoccupied;
-
-	//에니메이션 블루프린트가 클립을 잡으면 실행시키는 notify
-	UFUNCTION(BlueprintCallable)
-	void GrabClip();
-
-	//에니메이션 블루프린트가 클립을 재장착 실행시키는 notify
-	UFUNCTION(BlueprintCallable)
-	void ReleaseClip();
 
 	/**탄약 트렌스폼 */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Items, meta = (AllowPrivateAccess = "true"))
@@ -489,9 +481,6 @@ private:
 	bool bShouldPlayPickupSound = true;
 	bool bShouldPlayEquipSound = true;
 
-	void ResetPicukSoundTimer();
-	void ResetEquipSoundTimer();
-
 	//** 픽업 사운드 재생할때 기다려야하는 시간*/
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float PicupSoundResetTime =.2f;
@@ -532,14 +521,12 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	class UParticleSystem* BloodParticle;
 
-
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	class UAnimMontage* HitReactMontage;
 
-	/** 스턴 걸일 찬슨 */
+	/** 스턴 걸릴 확률 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	float StunChance =.25f;
-
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Combat, meta = (AllowPrivateAccess = "true"))
 	class UAnimMontage* DeathMontage;
@@ -549,43 +536,34 @@ private:
 	bool bDead = false;
 public:
 	FORCEINLINE bool GetAiming() const { return bAiming; }
-	FORCEINLINE UCameraComponent* GetCamera() const { return Camera; }
-
-	UFUNCTION(BlueprintCallable)
-	float GetCrosshairSpreadMultiplier() const;
-
+	FORCEINLINE class UCameraComponent* GetCamera() const { return Camera; }
 	FORCEINLINE int8 GetOverlappedItemCOunt() const { return OverlappedItemCount; }
-
-	/** 겹친 아이템 갯수를 더하거나 뺴준다*/
-	void IncrementOverlappedItemCount(int8 Amount);
-
-	/** 카메라 앞에 보여줄 무기 위치*/
-	FVector GetCameraInterpLocation();
-
-	void GetPickupItem(AItem* Item);
-	
 	FORCEINLINE ECombatState GetCombatState() const { return CombatState; }
 	FORCEINLINE bool GetCrouching() const { return bCrouching; }
-	FInterpLocation GetInterpLocation(int32 Index);
-
-	//
-	int32 GetInterpLocationIndex();
-
-	void IncrementInterpLocItemCount(int32 Index, int32 Amount);
-
-	FORCEINLINE bool ShouldPlayPickupSound() const { return bShouldPlayPickupSound; }
-	FORCEINLINE bool ShouldPlayEquipSound() const { return bShouldPlayEquipSound; }
-
-	void StartPickupSoundTimer();
-	void StartEquipSoundTimer(); 
-	void UnHighlightInventorySlot();
-
 	FORCEINLINE AWeapon* GetEquippedWeapon() const { return EquipeedWeapon; }
 	FORCEINLINE float GetHealth() const { return Health; }
 	FORCEINLINE float GetMaxHelath() const { return MaxHealth; }
 	FORCEINLINE USoundBase* GetMeleeImpactSound() const { return MeleeImpactSound; }
 	FORCEINLINE UParticleSystem* GetBloodParticle() const { return BloodParticle; }
 	FORCEINLINE float GetStunChance() const { return StunChance; }
+	FORCEINLINE bool ShouldPlayPickupSound() const { return bShouldPlayPickupSound; }
+	FORCEINLINE bool ShouldPlayEquipSound() const { return bShouldPlayEquipSound; }
+
+	UFUNCTION(BlueprintCallable)
+	float GetCrosshairSpreadMultiplier() const;
+
+	/** 겹친 아이템 갯수를 더하거나 뺴준다*/
+	void IncrementOverlappedItemCount(int8 Amount);
+	void GetPickupItem(class AItem* Item);
+	void IncrementInterpLocItemCount(int32 Index, int32 Amount);
+	void StartPickupSoundTimer();
+	void StartEquipSoundTimer();
+	void UnHighlightInventorySlot();
 	void Stun();
+
+	/** 카메라 앞에 보여줄 무기 위치*/
+	FVector GetCameraInterpLocation();
+	FInterpLocation GetInterpLocation(int32 Index);
+	int32 GetInterpLocationIndex();
 
 };

@@ -49,7 +49,6 @@ AMyCharacter::AMyCharacter() :
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = true;
 
-	//
 	GetCharacterMovement()->bOrientRotationToMovement = false; // 캐릭터가 누른키 방향으로 움직임
 	//GetCharacterMovement()->RotationRate = FRotator(0.f, 540.f, 0.f); //회전율
 	GetCharacterMovement()->JumpZVelocity = 600.f;
@@ -81,33 +80,16 @@ AMyCharacter::AMyCharacter() :
 
 }
 
-// Called when the game starts or when spawned
 void AMyCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
-	{
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			Subsystem->AddMappingContext(DefaultContext, 0);
-		}
-	}
+	InitializeInputSystem();
 
-	if (SpringArm)
-	{
-		CameraDefaultFOV = Camera->FieldOfView;
-		CameraCurrentFOV = CameraDefaultFOV;
-	}
+	InitializeCameraFOV();
 
-	//무기를 스폰하고 장착
-	EquipWeapon(SpawnDefaultWeapon());
-	Inventory.Add(EquipeedWeapon);
-	EquipeedWeapon->SetSlotIndex(0);
-	//무기 색깔 없음
-	EquipeedWeapon->DisableCustomDepth();
-	EquipeedWeapon->DisableGlowMaterial();
-	EquipeedWeapon->SetCharacter(this);
+	EquipDefaultWeapon();
+
 	InitializeAmmoMap();
 
 	//보간 구조체 배열에 저장 및 초기화
@@ -148,7 +130,6 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(AimingAction, ETriggerEvent::Started, this, &AMyCharacter::AimingButtonPressed);
 		EnhancedInputComponent->BindAction(AimingAction, ETriggerEvent::Completed, this, &AMyCharacter::AimingButtonReleased);
 		EnhancedInputComponent->BindAction(SelectAction, ETriggerEvent::Started, this, &AMyCharacter::SelectButtonPressed);
-		EnhancedInputComponent->BindAction(SelectAction, ETriggerEvent::Started, this, &AMyCharacter::SelectButtonReleased);
 		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &AMyCharacter::ReloadButtonPressed);
 		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AMyCharacter::CrouchingPressed);
 		EnhancedInputComponent->BindAction(FKeyhAction, ETriggerEvent::Started, this, &AMyCharacter::FKeyPressed);
@@ -157,7 +138,6 @@ void AMyCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCompone
 		EnhancedInputComponent->BindAction(Key3Action, ETriggerEvent::Started, this, &AMyCharacter::Key3Pressed);
 		EnhancedInputComponent->BindAction(Key4Action, ETriggerEvent::Started, this, &AMyCharacter::Key4Pressed);
 		EnhancedInputComponent->BindAction(Key5Action, ETriggerEvent::Started, this, &AMyCharacter::Key5Pressed);
-
 
 	}
 }
@@ -168,18 +148,11 @@ float AMyCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEve
 	{
 		Health = 0.f;
 		Die();
-
-		auto EnemyController = Cast<AMyAIController>(EventInstigator);
-		if (EnemyController)
-		{
-			EnemyController->GetBlackboardComponent()->SetValueAsBool(
-				FName("CharacterDead"), true);
-		}
+		MarkCharacterAsDead(EventInstigator);
 	}
 	else
 	{
 		Health -= DamageAmount;
-		
 	}
 
 	return DamageAmount;
@@ -190,8 +163,7 @@ void AMyCharacter::GrabClip()
 	if (EquipeedWeapon == nullptr || HandSceneCOmponet == nullptr) return;
 
 	//탄약 인덱스
-	int32 ClipBoneIndex = 
-		EquipeedWeapon->GetItemMesh()->GetBoneIndex(EquipeedWeapon->GetClipBoneName());
+	int32 ClipBoneIndex = EquipeedWeapon->GetItemMesh()->GetBoneIndex(EquipeedWeapon->GetClipBoneName());
 
 	/** 잡기 시작할 떄 트랜스폼*/
 	ClipTransForm = EquipeedWeapon->GetItemMesh()->GetBoneTransform(ClipBoneIndex);
@@ -201,12 +173,48 @@ void AMyCharacter::GrabClip()
 	HandSceneCOmponet->SetWorldTransform(ClipTransForm);
 
 	EquipeedWeapon->SetMovingClip(true);
-
 }
 
 void AMyCharacter::ReleaseClip()
 {
 	EquipeedWeapon->SetMovingClip(false);
+}
+
+void AMyCharacter::InitializeInputSystem()
+{
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			Subsystem->AddMappingContext(DefaultContext, 0);
+		}
+	}
+}
+
+void AMyCharacter::InitializeCameraFOV()
+{
+	if (SpringArm)
+	{
+		CameraDefaultFOV = Camera->FieldOfView;
+		CameraCurrentFOV = CameraDefaultFOV;
+	}
+}
+
+void AMyCharacter::EquipDefaultWeapon()
+{
+	AWeapon* DefaultWeapon = SpawnDefaultWeapon();
+
+	if (DefaultWeapon)
+	{
+		//무기 스폰 및 장착
+		EquipWeapon(DefaultWeapon);
+		Inventory.Add(EquipeedWeapon);
+		EquipeedWeapon->SetSlotIndex(0);
+		//무기 색깔 없음
+		EquipeedWeapon->DisableCustomDepth();
+		EquipeedWeapon->DisableGlowMaterial();
+		EquipeedWeapon->SetCharacter(this);
+	}
 }
 
 void AMyCharacter::ResetPicukSoundTimer()
@@ -217,6 +225,40 @@ void AMyCharacter::ResetPicukSoundTimer()
 void AMyCharacter::ResetEquipSoundTimer()
 {
 	bShouldPlayEquipSound = true;
+}
+
+void AMyCharacter::MarkCharacterAsDead(AController* EventInstigator)
+{
+	AMyAIController* EnemyController = Cast<AMyAIController>(EventInstigator);
+	if (EnemyController)
+	{
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("CharacterDead"), true);
+	}
+}
+
+void AMyCharacter::ReloadAmmoForEquippedWeapon()
+{
+	const auto AmmoType = EquipeedWeapon->GetAmmoType();
+	if (AmmoMap.Contains(AmmoType))
+	{
+		//캐릭터가 가지고있는 장비 유형의 탄약
+		int32 CarriedAmmo = AmmoMap[AmmoType];
+
+		const int32 MagEmptySpace = EquipeedWeapon->GetMagazineCapacity() - EquipeedWeapon->GetAmmo();
+
+		if (MagEmptySpace > CarriedAmmo)
+		{
+			EquipeedWeapon->ReloadAmmo(CarriedAmmo);
+			CarriedAmmo = 0;
+			AmmoMap.Add(AmmoType, CarriedAmmo);
+		}
+		else
+		{
+			EquipeedWeapon->ReloadAmmo(MagEmptySpace);
+			CarriedAmmo -= MagEmptySpace;
+			AmmoMap.Add(AmmoType, CarriedAmmo);
+		}
+	}
 }
 
 float AMyCharacter::GetCrosshairSpreadMultiplier() const
@@ -334,21 +376,12 @@ bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FHitR
 	{
 		OutBeamLocation = CrosshairHitResult.Location;
 	}
-	else
-	{
-
-	}
 
 	//두번째 라인트레이스 총위치에서			
-
 	const FVector WeaponTraceStart = MuzzleSocketLocation;
 	const FVector StartToEnd = OutBeamLocation - MuzzleSocketLocation; //시작부터 끝에 거리는 끝에서 처음 거리를 뺴면된다.
 	const FVector WeaponTraceEnd = MuzzleSocketLocation + StartToEnd *1.25;
-	GetWorld()->LineTraceSingleByChannel(
-		OutHitResult,
-		WeaponTraceStart,
-		WeaponTraceEnd,
-		ECollisionChannel::ECC_Visibility
+	GetWorld()->LineTraceSingleByChannel(OutHitResult, WeaponTraceStart, WeaponTraceEnd, ECollisionChannel::ECC_Visibility
 	);
 
 	if (!OutHitResult.bBlockingHit) //// 총입구에서 발사지점 사이에 물체가 있다면 
@@ -357,12 +390,10 @@ bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FHitR
 		return false;
 	}
 	return true;
-	
 }
 
 void AMyCharacter::AimingButtonPressed()
 {
-
 	bAimingButtonPressed = true;
 	if (CombatState != ECombatState::ECS_Reloading &&
 		CombatState != ECombatState::ECS_Equipping &&
@@ -384,12 +415,7 @@ void AMyCharacter::SelectButtonPressed()
 		TraceHitItem->StartItemCurve(this,true);
 		TraceHitItem = nullptr;
 	}
-	
 } 
-
-void AMyCharacter::SelectButtonReleased()
-{
-}
 
 void AMyCharacter::ReloadButtonPressed()
 {
@@ -407,13 +433,17 @@ void AMyCharacter::ReloadWeapon()
 	{
 		if (bAiming) StopAiming();
 		CombatState = ECombatState::ECS_Reloading;
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (ReloadMontage && AnimInstance)
-		{
-			AnimInstance->Montage_Play(ReloadMontage);
-			AnimInstance->Montage_JumpToSection(
-				EquipeedWeapon->GetReloadMontageSecion(), ReloadMontage);
-		}
+		ReloadMontagePlay();
+	}
+}
+
+void AMyCharacter::ReloadMontagePlay()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (ReloadMontage && AnimInstance)
+	{
+		AnimInstance->Montage_Play(ReloadMontage);
+		AnimInstance->Montage_JumpToSection(EquipeedWeapon->GetReloadMontageSecion(), ReloadMontage);
 	}
 }
 
@@ -427,29 +457,7 @@ void AMyCharacter::FinishReloading()
 
 	if (EquipeedWeapon == nullptr) return;
 
-	const auto AmmoType = EquipeedWeapon->GetAmmoType();
-	if (AmmoMap.Contains(AmmoType))
-	{
-		//캐릭터가 가지고있는 장비 유형의 탄약
-		int32 CarriedAmmo = AmmoMap[AmmoType];
-
-		const int32 MagEmptySpace =
-			EquipeedWeapon->GetMagazineCapacity() - 
-			EquipeedWeapon->GetAmmo();
-
-		if (MagEmptySpace > CarriedAmmo)
-		{
-			EquipeedWeapon->ReloadAmmo(CarriedAmmo);
-			CarriedAmmo = 0;
-			AmmoMap.Add(AmmoType, CarriedAmmo);
-		}
-		else
-		{
-			EquipeedWeapon->ReloadAmmo(MagEmptySpace);
-			CarriedAmmo -= MagEmptySpace;
-			AmmoMap.Add(AmmoType, CarriedAmmo);
-		}
-	}
+	ReloadAmmoForEquippedWeapon();
 }
 
 void AMyCharacter::FinishEquipping()

@@ -83,7 +83,6 @@ void AEnemy::PlayHitMontage(FName Section, float PlayRate)
 		const float HitReactTime = FMath::FRandRange(HitReactTimeMin, HitRactTimeMax);
 		GetWorldTimerManager().SetTimer(HitReactTimer, this, &AEnemy::ResetHitReactTimer, HitReactTime);
 	}
-
 }
 
 void AEnemy::PlayAttackMontage(FName Section, float PlayRate)
@@ -146,9 +145,7 @@ void AEnemy::AgroSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor*
 	if (Character && EnemyController && EnemyController->GetBlackboardComponent())
 	{
 		//블랙보드 타켓을 부딫힌 캐릭터로 바꿔줌
-		EnemyController->GetBlackboardComponent()->SetValueAsObject(
-			TEXT("Target"),
-			Character);
+		EnemyController->GetBlackboardComponent()->SetValueAsObject(TEXT("Target"),Character);
 	}
 }
 
@@ -258,22 +255,11 @@ void AEnemy::DoDamage(AMyCharacter* Victim)
 {
 	if (Victim == nullptr) return;
 
-	UGameplayStatics::ApplyDamage(
-		Victim,
-		BaseDamage,
-		EnemyController,
-		this,
-		UDamageType::StaticClass()
-	);
+	UGameplayStatics::ApplyDamage(Victim, BaseDamage, EnemyController, this, UDamageType::StaticClass());
 		if (Victim->GetMeleeImpactSound())
 		{
-			UGameplayStatics::PlaySoundAtLocation(
-				this,
-				Victim->GetMeleeImpactSound(),
-				GetActorLocation()
-			);
+			UGameplayStatics::PlaySoundAtLocation(this,	Victim->GetMeleeImpactSound(),	GetActorLocation());
 		}
-
 }
 
 void AEnemy::SpawnBlood(AMyCharacter* Victime, FName SocketName)
@@ -284,13 +270,9 @@ void AEnemy::SpawnBlood(AMyCharacter* Victime, FName SocketName)
 		const FTransform SocketTansform = TipSocket->GetSocketTransform(GetMesh());
 		if (Victime->GetBloodParticle())
 		{
-			UGameplayStatics::SpawnEmitterAtLocation(
-				GetWorld(),
-				Victime->GetBloodParticle(),
-				SocketTansform);
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Victime->GetBloodParticle(), SocketTansform);
 		}
 	}
-
 }
 
 void AEnemy::StunCharacter(AMyCharacter* Victime)
@@ -325,12 +307,10 @@ void AEnemy::Die()
 	{
 		AnimInstance->Montage_Play(DeathMontage);
 	}
+
 	if (EnemyController)
 	{
-		EnemyController->GetBlackboardComponent()->SetValueAsBool(
-			FName("Dead"),
-			true
-		);
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("Dead"),true);
 		EnemyController->StopMovement();
 	}
 }
@@ -339,7 +319,6 @@ void AEnemy::FinishDeath()
 {
 	GetMesh()->bPauseAnims = true;
 	SetLifeSpan(3.f);
-	//Destroy();
 }
 
 void AEnemy::SetupBehaviorTree()
@@ -358,14 +337,8 @@ void AEnemy::SetupBehaviorTree()
 
 	if (EnemyController)
 	{
-		EnemyController->GetBlackboardComponent()->SetValueAsVector(
-			TEXT("PatrolPoint"),
-			WorldPatrolPoint);
-
-		EnemyController->GetBlackboardComponent()->SetValueAsVector(
-			TEXT("PatrolPoint2"),
-			WorldPatrolPoint2);
-
+		EnemyController->GetBlackboardComponent()->SetValueAsVector(TEXT("PatrolPoint"),WorldPatrolPoint);
+		EnemyController->GetBlackboardComponent()->SetValueAsVector(TEXT("PatrolPoint2"),WorldPatrolPoint2);
 		EnemyController->RunBehaviorTree(BeHaviorTree);
 	}
 }
@@ -389,15 +362,8 @@ void AEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	UpdateHitNumbers();
-
 }
 
-// Called to bind functionality to input
-void AEnemy::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-}
 void AEnemy::BulletHit_Implementation(FHitResult HitResult, AActor* Shooter, AController* ShooterController)
 {
 	if (ImpactSound)
@@ -406,39 +372,43 @@ void AEnemy::BulletHit_Implementation(FHitResult HitResult, AActor* Shooter, ACo
 	}
 	if (ImpactParticles)
 	{
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles,
-			HitResult.Location, FRotator(0.f), true);
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticles,HitResult.Location, FRotator(0.f), true);
 	}
 }
 
 float AEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	//맞으면 블랙보드 키를 때린사름으로 바꿔줌
+	// 맞으면 블랙보드 키를 공격한 사람으로 업데이트
 	if (EnemyController)
 	{
 		EnemyController->GetBlackboardComponent()->SetValueAsObject(FName("Target"), DamageCauser);
 	}
+
+	// 체력 감소
 	if (Health - DamageAmount <= 0.f)
 	{
 		Health = 0.f;
 		Die();
-
 	}
 	else
 	{
 		Health -= DamageAmount;
 	}
 
+	// 이미 사망 중인 경우 데미지만 반환
 	if (bDying) return DamageAmount;
 
+	// 헬스바 표시
 	ShowHealthBar();
 
-	const float Stunned = FMath::FRandRange(0.1f, 1.f);
-	if (Stunned <= StunChance)
+	// 스턴 확률에 따라 스턴 실행
+	const float StunChanceRoll = FMath::FRandRange(0.1f, 1.f);
+	if (StunChanceRoll <= StunChance)
 	{
 		PlayHitMontage(FName("Front"));
 		SetStunned(true);
 	}
+
 	return DamageAmount;
 }
 
