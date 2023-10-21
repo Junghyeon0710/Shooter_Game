@@ -151,6 +151,8 @@ protected:
 
 	void ExchangeInventoryIrems(int32 CurrentItemIndex, int32 NewItemIndex);
 
+	void PlayEquipMontage();
+
 	//카메라 보강
 	void CameraIntrerpZoom(float DeltaTime);
 
@@ -242,6 +244,17 @@ private:
 	void ResetEquipSoundTimer();
 	void MarkCharacterAsDead(AController* EventInstigator);
 	void ReloadAmmoForEquippedWeapon();
+	void SwapWeapons(int32 CurrentItemIndex, int32 NewItemIndex);
+	void HandleTraceHitResult(const FHitResult& ItemTraceResult);
+	void HandlePickupWidgetAndCustomDepth();
+	void HandleLastFrameTraceItem();
+	void ClearLastFrameTraceItem();
+	bool CanSwapWeapons(AWeapon* WeaponToSwap) const;
+	void UpdateInventorySlot(AWeapon* WeaponToSwap);
+	void SpawnMuzzleFlash(const FTransform& SocketTransform);
+	void HandleBulletHitResult(FHitResult& HitResult);
+
+	void SpawnBeamParticle(const FTransform& SocketTransform, const FVector& BeamEndLocation);
 	//에니메이션 블루프린트가 클립을 잡으면 실행시키는 notify
 	UFUNCTION(BlueprintCallable)
 	void GrabClip();

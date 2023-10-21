@@ -261,6 +261,166 @@ void AMyCharacter::ReloadAmmoForEquippedWeapon()
 	}
 }
 
+void AMyCharacter::SwapWeapons(int32 CurrentItemIndex, int32 NewItemIndex)
+{
+	auto OldEquippedWeapon = EquipeedWeapon;
+	auto NewWeapon = Cast<AWeapon>(Inventory[NewItemIndex]);
+
+	EquipWeapon(NewWeapon);
+	OldEquippedWeapon->SetItemState(EItemState::EIS_PickedUp);
+	NewWeapon->SetItemState(EItemState::EIS_Equipped);
+	CombatState = ECombatState::ECS_Equipping;
+	NewWeapon->PlayEquipSound(true);
+}
+
+void AMyCharacter::HandleTraceHitResult(const FHitResult& ItemTraceResult)
+{
+	TraceHitItem = Cast<AItem>(ItemTraceResult.GetActor());
+	const auto TraceHitWeapon = Cast<AWeapon>(TraceHitItem);
+
+	if (TraceHitWeapon)
+	{
+		HighlightInventorySlot();
+	}
+	else if (HighlightedSlot != -1)
+	{
+		UnHighlightInventorySlot();
+	}
+
+	if (TraceHitItem && TraceHitItem->GetItemState() == EItemState::EIS_EquipInterping)
+	{
+		TraceHitItem = nullptr;
+	}
+
+	HandlePickupWidgetAndCustomDepth();
+}
+
+void AMyCharacter::HandlePickupWidgetAndCustomDepth()
+{
+	if (TraceHitItem && TraceHitItem->GetPickupWidget())
+	{
+		TraceHitItem->GetPickupWidget()->SetVisibility(true);
+		TraceHitItem->EnableCustomDepth();
+
+		if (Inventory.Num() >= INVENTORY_CAPACITY)
+		{
+			TraceHitItem->SetCharacterInventoryFull(true);
+		}
+		else
+		{
+			TraceHitItem->SetCharacterInventoryFull(false);
+		}
+	}
+}
+
+void AMyCharacter::HandleLastFrameTraceItem()
+{
+	// 마지막에 겹친 아이템이 있는지
+	if (TraceHitItemLastFrame)
+	{
+		if (TraceHitItem != TraceHitItemLastFrame)
+		{
+			//히트 아이템이 널이고 마지막 아이템이 다르면 위젯을 꺼줌
+			TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
+
+			TraceHitItemLastFrame->DisableCustomDepth();
+		}
+	}
+}
+
+void AMyCharacter::ClearLastFrameTraceItem()
+{
+	if (TraceHitItemLastFrame)
+	{
+		TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
+		TraceHitItemLastFrame->DisableCustomDepth();
+	}
+}
+
+bool AMyCharacter::CanSwapWeapons(AWeapon* WeaponToSwap) const
+{
+	if (Inventory.Num() - 1 >= EquipeedWeapon->GetSlotIndex())
+	{
+		return true;
+	}
+	return false;
+}
+
+void AMyCharacter::UpdateInventorySlot(AWeapon* WeaponToSwap)
+{
+	Inventory[EquipeedWeapon->GetSlotIndex()] = WeaponToSwap;
+	WeaponToSwap->SetSlotIndex(EquipeedWeapon->GetSlotIndex());
+}
+
+void AMyCharacter::SpawnMuzzleFlash(const FTransform& SocketTransform)
+{
+	if (EquipeedWeapon->GetMuzzleFlash())
+	{
+		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquipeedWeapon->GetMuzzleFlash(), SocketTransform);
+	}
+}
+
+void AMyCharacter::HandleBulletHitResult(FHitResult& HitResult)
+{
+	//인터페이스가 존재하나요
+	if (HitResult.GetActor())
+	{
+		IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(HitResult.GetActor());
+		if (BulletHitInterface)
+		{
+			BulletHitInterface->BulletHit_Implementation(HitResult, this, GetController());
+		}
+
+		AEnemy* HitEnmey = Cast<AEnemy>(HitResult.GetActor());
+		if (HitEnmey)
+		{
+			int32 Damage;
+			//헤드샷
+			if (HitResult.BoneName.ToString() == HitEnmey->GetHeadBone())
+			{
+				Damage = EquipeedWeapon->GetHeadShotDamage();
+				UGameplayStatics::ApplyDamage(
+					HitResult.GetActor(),
+					EquipeedWeapon->GetHeadShotDamage(),
+					GetController(),
+					this,
+					UDamageType::StaticClass());
+				HitEnmey->ShowHitNumber(Damage, HitResult.Location, true);
+			}
+			else
+			{
+				Damage = EquipeedWeapon->GetDamage();
+				UGameplayStatics::ApplyDamage(
+					HitResult.GetActor(),
+					EquipeedWeapon->GetDamage(),
+					GetController(),
+					this,
+					UDamageType::StaticClass());
+				HitEnmey->ShowHitNumber(Damage, HitResult.Location, false);
+			}
+
+		}
+		if (ImpactParticle) //히트지점 파티클
+		{
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticle, BeamHitReuslt.Location);
+		}
+	}
+}
+
+void AMyCharacter::SpawnBeamParticle(const FTransform& SocketTransform, const FVector& BeamEndLocation)
+{
+	if (BeamParticle)
+	{
+		UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
+			GetWorld(), BeamParticle, SocketTransform);
+		if (Beam)
+		{
+			Beam->SetVectorParameter(FName("Target"), BeamEndLocation);//어디까지 연기가 가게 할건지
+		}
+	}
+}
+
+
 float AMyCharacter::GetCrosshairSpreadMultiplier() const
 {
 	return CrosshairSpreadMultiplire;
@@ -279,8 +439,6 @@ void AMyCharacter::IncrementOverlappedItemCount(int8 Amount)
 		bShouldTraceForItems = true;
 	}
 }
-
-
 
 void AMyCharacter::Move(const FInputActionValue& Value)
 {
@@ -546,21 +704,18 @@ void AMyCharacter::ExchangeInventoryIrems(int32 CurrentItemIndex, int32 NewItemI
 		{
 			StopAiming();
 		}
-		auto OldEquippedWeapon = EquipeedWeapon;
-		auto NewWeapon = Cast<AWeapon>(Inventory[NewItemIndex]);
+		SwapWeapons(CurrentItemIndex, NewItemIndex);
+		PlayEquipMontage();
+	}
+}
 
-		EquipWeapon(NewWeapon);
-		OldEquippedWeapon->SetItemState(EItemState::EIS_PickedUp);
-		NewWeapon->SetItemState(EItemState::EIS_Equipped);
-
-		CombatState = ECombatState::ECS_Equipping;
-		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if (AnimInstance && EquipMontage)
-		{
-			AnimInstance->Montage_Play(EquipMontage, 1.0);
-			AnimInstance->Montage_JumpToSection(FName("Equip"));
-		}
-		NewWeapon->PlayEquipSound(true);
+void AMyCharacter::PlayEquipMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && EquipMontage)
+	{
+		AnimInstance->Montage_Play(EquipMontage, 1.0);
+		AnimInstance->Montage_JumpToSection(FName("Equip"));
 	}
 }
 
@@ -570,21 +725,12 @@ void AMyCharacter::CameraIntrerpZoom(float DeltaTime)
 	if (bAiming) 	// 버튼을 눌렀나
 	{
 		//카메라 줌을 보강
-		CameraCurrentFOV = FMath::FInterpTo(
-			CameraCurrentFOV,
-			CameraZoomedFOV,
-			DeltaTime,
-			ZoomInterpSpeed);
+		CameraCurrentFOV = FMath::FInterpTo(CameraCurrentFOV, CameraZoomedFOV, DeltaTime, ZoomInterpSpeed);
 	}
 	else
 	{
 		//카메라 기본값을 보강
-		CameraCurrentFOV = FMath::FInterpTo(
-			CameraCurrentFOV,
-			CameraDefaultFOV,
-			DeltaTime,
-			ZoomInterpSpeed);
-
+		CameraCurrentFOV = FMath::FInterpTo(CameraCurrentFOV, CameraDefaultFOV, DeltaTime, ZoomInterpSpeed);
 	}
 	Camera->SetFieldOfView(CameraCurrentFOV);
 }
@@ -610,59 +756,43 @@ void AMyCharacter::CalculateCrosshairSpread(float DeltaTime)
 	Velocity.Z = 0.f;
 	
 	//[Input:Range] inclusive로 고정된 주어진 값에 대해 [Output:Range] Inclusive에서 해당 백분율을 반환합니다.
-	CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped
-	(WalkSpeddRange, VelocityMultiplierRange,Velocity.Size());
+	CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped(WalkSpeddRange, VelocityMultiplierRange,Velocity.Size());
 
 	// 공중에 있을떄 크로스 헤어
 	if (GetCharacterMovement()->IsFalling()) //공중에 있나
 	{
 		//천천히 크로스헤어가 퍼짐
-		CrosshairInAirFactor = FMath::FInterpTo(
-			CrosshairInAirFactor, 1, DeltaTime, 2.25f);
+		CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 1, DeltaTime, 2.25f);
 	}
 	else //바닥에 닿았으면
 	{
 		//크로스헤어를 빠르게 좁힘
-		CrosshairInAirFactor = FMath::FInterpTo(
-			CrosshairInAirFactor, 0.f, DeltaTime, 30.f);
+		CrosshairInAirFactor = FMath::FInterpTo(CrosshairInAirFactor, 0.f, DeltaTime, 30.f);
 	}
 
 	//크로스헤어 조준중일때 계산
 	if (bAiming) //조준중인가
 	{
 		//십자선 축소
-		CrosshairAimFactor = FMath::FInterpTo(
-			CrosshairAimFactor, 0.6f,
-			DeltaTime,
-			30.f);
+		CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.6f,DeltaTime,30.f);
 	}
 	else // 조준중이 아니면
 	{
 		//십자선 복구
-		CrosshairAimFactor = FMath::FInterpTo(
-			CrosshairAimFactor, 0.f,
-			DeltaTime,
-			30.f);
+		CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.f,DeltaTime,30.f);
 	}
 
 	//0.05초뒤에 참
 	if (bFiringBullet)
 	{
-		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor,
-			0.3f, DeltaTime, 60.f);
+		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor,0.3f, DeltaTime, 60.f);
 	}
 	else
 	{
-		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor,
-			0.f, DeltaTime, 60.f);
+		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor,0.f, DeltaTime, 60.f);
 	}
 
-	CrosshairSpreadMultiplire = 
-		0.5f +
-		CrosshairVelocityFactor +
-		CrosshairInAirFactor -
-		CrosshairAimFactor +
-		CrosshairShootingFactor;
+	CrosshairSpreadMultiplire = 0.5f + CrosshairVelocityFactor + CrosshairInAirFactor - CrosshairAimFactor + CrosshairShootingFactor;
 }
 
 void AMyCharacter::StartCrosshairBulletFire()
@@ -670,10 +800,7 @@ void AMyCharacter::StartCrosshairBulletFire()
 	bFiringBullet = true;
 
 	//0.05초뒤에 FinishCrosshairBulletFire함수를 불러옴
-	GetWorldTimerManager().SetTimer(
-		CrosshairShootTimer,
-		this, &AMyCharacter::FinishCrosshairBulletFire, 
-		ShootTimeDuration);
+	GetWorldTimerManager().SetTimer(CrosshairShootTimer,this, &AMyCharacter::FinishCrosshairBulletFire, ShootTimeDuration);
 }
 
 void AMyCharacter::FinishCrosshairBulletFire()
@@ -699,10 +826,7 @@ void AMyCharacter::StartFireTimer()
 	if (EquipeedWeapon == nullptr) return;
 	CombatState = ECombatState::ECS_FireTimerInProgress;
 
-	GetWorldTimerManager().SetTimer(AutoFireTimer,
-		this,
-		&AMyCharacter::AutoFireReset,
-		EquipeedWeapon->GetAutoFireRate());
+	GetWorldTimerManager().SetTimer(AutoFireTimer,this,&AMyCharacter::AutoFireReset,EquipeedWeapon->GetAutoFireRate());
 	
 }
 
@@ -743,99 +867,42 @@ bool AMyCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHi
 
 	//십자선 방향과 위치 파악
 	//화면 공간 위치를 나타내는 FVector2D를 세계 공간 위치를 나타내는 FVector로 변환
-	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(
-		UGameplayStatics::GetPlayerController(this, 0),
-		CrosshairLocation,
-		CrosshairWorldPosition,
-		CrosshairWorldDirection);
+	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(UGameplayStatics::GetPlayerController(this, 0),CrosshairLocation,	CrosshairWorldPosition,CrosshairWorldDirection);
 
 	if (bScreenToWorld)
 	{
-		//
 		const FVector Start = CrosshairWorldPosition;
 		const FVector End = Start+ CrosshairWorldDirection * 50'000.f;
 		OutHitLocation = End;
 
 		//크로스헤어로 트레이스 추적
-		GetWorld()->LineTraceSingleByChannel(OutHitResult,
-			Start, End,
-			ECollisionChannel::ECC_Visibility);
+		GetWorld()->LineTraceSingleByChannel(OutHitResult,Start, End, ECollisionChannel::ECC_Visibility);
 		if (OutHitResult.bBlockingHit)
 		{
 			OutHitLocation = OutHitResult.Location;
 			return true;
 		}
 	}
-
 	return false;
 }
 
 void AMyCharacter::TraceForItems()
 {
-	
 	if(bShouldTraceForItems)
 	{
 		FHitResult ItemTraceResult;
-		FVector hitLocation;
-		TraceUnderCrosshairs(ItemTraceResult, hitLocation);
-		if (ItemTraceResult.bBlockingHit)
-		{
-			TraceHitItem = Cast<AItem>(ItemTraceResult.GetActor());
-			const auto TraceHitWeapon = Cast<AWeapon>(TraceHitItem);
-			if (TraceHitWeapon)
-			{
-				if (HighlightedSlot == -1)
-				{
-					//현재 강조된 슬롯이 없다.
-					HighlightInventorySlot();
-				}
-			}
-			else
-			{
-				if (HighlightedSlot != -1)
-				{
-					UnHighlightInventorySlot();
-				}
-			}
-			if (TraceHitItem && TraceHitItem->GetItemState() == EItemState::EIS_EquipInterping)
-			{
-				TraceHitItem = nullptr;
-			}
-			if (TraceHitItem && TraceHitItem->GetPickupWidget())
-			{
-				TraceHitItem->GetPickupWidget()->SetVisibility(true);
-				TraceHitItem->EnableCustomDepth();
+		FVector HitLocation;
+		TraceUnderCrosshairs(ItemTraceResult, HitLocation);
 
-				if (Inventory.Num() >= INVENTORY_CAPACITY)
-				{
-					//인벤토리 꽉참
-					TraceHitItem->SetCharacterInventoryFull(true);
-				}
-				else //인벤토리 안꽉참
-				{
-					TraceHitItem->SetCharacterInventoryFull(false);
-				}
-			}
-			// 마지막에 겹친 아이템이 있는지
-			if (TraceHitItemLastFrame)
-			{
-				if (TraceHitItem != TraceHitItemLastFrame)
-				{
-					//히트 아이템이 널이고 마지막 아이템이 다르면 위젯을 꺼줌
-					TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
-				
-					TraceHitItemLastFrame->DisableCustomDepth();
-				}
-			}
-			// 히트 아이템을 참조
-			TraceHitItemLastFrame = TraceHitItem;
-		}
+		HandleTraceHitResult(ItemTraceResult);
+		HandleLastFrameTraceItem();
+
+		// 히트 아이템을 참조
+		TraceHitItemLastFrame = TraceHitItem;
 	}
-	else if (TraceHitItemLastFrame)
+	else
 	{
-		TraceHitItemLastFrame->GetPickupWidget()->SetVisibility(false);
-		TraceHitItemLastFrame->DisableCustomDepth();
-
+		ClearLastFrameTraceItem();
 	}
 
 }
@@ -853,7 +920,6 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip , bool bSwapping)
 {
 	if (WeaponToEquip)
 	{
-
 		//핸드 소켓 얻기
 		const USkeletalMeshSocket* HandSocket = GetMesh()->GetSocketByName(FName("RightHandSocket"));
 		if (HandSocket)
@@ -876,7 +942,6 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip , bool bSwapping)
 		EquipeedWeapon = WeaponToEquip;
 		//장착한 상태
 		EquipeedWeapon->SetItemState(EItemState::EIS_Equipped);
-	
 	}
 }
 
@@ -895,10 +960,9 @@ void AMyCharacter::DropWeapon()
 void AMyCharacter::SwapWeapon(AWeapon* WeaponToSwap)
 {
 
-	if (Inventory.Num() - 1 >= EquipeedWeapon->GetSlotIndex())
+	if (CanSwapWeapons(WeaponToSwap))
 	{
-		Inventory[EquipeedWeapon->GetSlotIndex()] = WeaponToSwap;
-		WeaponToSwap->SetSlotIndex(EquipeedWeapon->GetSlotIndex());
+		UpdateInventorySlot(WeaponToSwap);
 	}
 
 	DropWeapon();
@@ -906,17 +970,20 @@ void AMyCharacter::SwapWeapon(AWeapon* WeaponToSwap)
 	TraceHitItem = nullptr;
 	TraceHitItemLastFrame = nullptr;
 }
+
 void AMyCharacter::InitializeAmmoMap()
 {
 	AmmoMap.Add(EAmmoType::EAT_9mm, Starting9MMAmmo);
 	AmmoMap.Add(EAmmoType::EAT_AR, StartingARAmmo);
 }
+
 bool AMyCharacter::WeaponHasAmmo()
 {
 	if (EquipeedWeapon == nullptr) return false;
 
 	return EquipeedWeapon->GetAmmo() > 0;
 }
+
 void AMyCharacter::PlayFireSound()
 {
 	if (EquipeedWeapon == nullptr) return;
@@ -925,84 +992,37 @@ void AMyCharacter::PlayFireSound()
 	{
 		UGameplayStatics::PlaySound2D(this,EquipeedWeapon->GetFireSound());
 	}
+
 }
+
 void AMyCharacter::SendBullet()
 {
 	//총알 보내기
-	const USkeletalMeshSocket* Weapon_Socket =
-		EquipeedWeapon->GetItemMesh()->GetSocketByName("Weapon_Socket");
-	if (Weapon_Socket)
+	const USkeletalMeshSocket* Weapon_Socket = EquipeedWeapon->GetItemMesh()->GetSocketByName("Weapon_Socket");
+	if (!Weapon_Socket)
 	{
-		const FTransform SocketTransform = Weapon_Socket->GetSocketTransform(EquipeedWeapon->GetItemMesh());
-
-		if (EquipeedWeapon->GetMuzzleFlash())
-		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), EquipeedWeapon->GetMuzzleFlash(), SocketTransform);
-		}
-
-		FHitResult BeamHitReuslt;
-		bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamHitReuslt);
-		if (bBeamEnd)
-		{
-			//인터페이스가 존재하나요
-			if (BeamHitReuslt.GetActor())
-			{
-				IBulletHitInterface* BulletHitInterface = Cast<IBulletHitInterface>(BeamHitReuslt.GetActor());
-				if (BulletHitInterface)
-				{
-					BulletHitInterface->BulletHit_Implementation(BeamHitReuslt,this,GetController());
-				}
-
-				AEnemy* HitEnmey = Cast<AEnemy>(BeamHitReuslt.GetActor());
-				if (HitEnmey)
-				{
-					int32 Damage;
-					//헤드샷
-					if (BeamHitReuslt.BoneName.ToString() == HitEnmey->GetHeadBone())
-					{
-						Damage = EquipeedWeapon->GetHeadShotDamage();
-						UGameplayStatics::ApplyDamage(
-							BeamHitReuslt.GetActor(),
-							EquipeedWeapon->GetHeadShotDamage(),
-							GetController(),
-							this,
-							UDamageType::StaticClass());
-						HitEnmey->ShowHitNumber(Damage, BeamHitReuslt.Location,true);
-					}
-					else
-					{
-						Damage = EquipeedWeapon->GetDamage();
-						UGameplayStatics::ApplyDamage(
-							BeamHitReuslt.GetActor(),
-							EquipeedWeapon->GetDamage(),
-							GetController(),
-							this,
-							UDamageType::StaticClass());
-						HitEnmey->ShowHitNumber(Damage, BeamHitReuslt.Location,false);
-					}
-					
-				}
-			}
-			else
-			{
-				if(ImpactParticle) //히트지점 파티클
-			
-				UGameplayStatics::SpawnEmitterAtLocation(GetWorld(),
-					ImpactParticle, BeamHitReuslt.Location);
-			}
-		
-			if (BeamParticle)
-			{
-				UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
-					GetWorld(), BeamParticle, SocketTransform);
-				if (Beam)
-				{
-					Beam->SetVectorParameter(FName("Target"), BeamHitReuslt.Location);//어디까지 연기가 가게 할건지
-				}
-			}
-		}
+		return;
 	}
+	const FTransform SocketTransform = Weapon_Socket->GetSocketTransform(EquipeedWeapon->GetItemMesh());
+
+	SpawnMuzzleFlash(SocketTransform);
+
+	FHitResult BeamHitReuslt;
+	bool bBeamEnd = GetBeamEndLocation(SocketTransform.GetLocation(), BeamHitReuslt);
+
+	if (bBeamEnd)
+	{
+		HandleBulletHitResult(BeamHitReuslt);
+	}
+
+	if (BeamParticle)
+	{
+		SpawnBeamParticle(SocketTransform, BeamHitReuslt.Location);
+	}
+
 }
+
+
 void AMyCharacter::PlayGunFireMontage()
 {
 	// 애니메이션 플레이
@@ -1226,11 +1246,7 @@ void AMyCharacter::StartPickupSoundTimer()
 void AMyCharacter::StartEquipSoundTimer()
 {
 	bShouldPlayEquipSound = false;
-	GetWorldTimerManager().SetTimer(
-		EqiupSoundTimer,
-		this,
-		&AMyCharacter::ResetEquipSoundTimer,
-		EquipSOundResetTime);
+	GetWorldTimerManager().SetTimer(EqiupSoundTimer, this, &AMyCharacter::ResetEquipSoundTimer, EquipSOundResetTime);
 }
 FVector AMyCharacter::GetCameraInterpLocation()
 {
@@ -1238,10 +1254,8 @@ FVector AMyCharacter::GetCameraInterpLocation()
 	const FVector CameraForward = Camera->GetForwardVector();
 
 	//CameraWorldLocation + Forward *A + Up *B
-	return CameraWorldLocation + CameraForward * CameraInterpDistance
-		+ FVector(0.f, 0.f, CameraInterpElevation);
+	return CameraWorldLocation + CameraForward * CameraInterpDistance + FVector(0.f, 0.f, CameraInterpElevation);
 	
-
 }
 
 void AMyCharacter::GetPickupItem(AItem* Item)
