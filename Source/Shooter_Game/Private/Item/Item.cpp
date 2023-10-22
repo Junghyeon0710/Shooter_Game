@@ -37,10 +37,7 @@ void AItem::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (PickuWidget)
-	{
-		PickuWidget->SetVisibility(false);
-	}
+	HidPickupWidget();
 	
 	//항목의 휘귀도의 따라 별 설정
 	SetActiveStars();
@@ -55,6 +52,14 @@ void AItem::BeginPlay()
 	InitializeCustomDepth();
 	StartPulseTimer();
 	
+}
+
+void AItem::HidPickupWidget()
+{
+	if (PickuWidget)
+	{
+		PickuWidget->SetVisibility(false);
+	}
 }
 
 void AItem::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
@@ -135,20 +140,16 @@ void AItem::SetItemProperties(EItemState State)
 		ItemMesh->SetVisibility(true);
 		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-		
-
+	
 		// 스피어 속성 설정
 		AreaSphere->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 		AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Overlap);
 		
-
 		//박스 콜리전 설정
 		CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-		CollisionBox->SetCollisionResponseToChannel(
-			ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
+		CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 		
-
 		break;
 	case EItemState::EIS_EquipInterping:
 		PickuWidget->SetVisibility(false);
@@ -193,7 +194,6 @@ void AItem::SetItemProperties(EItemState State)
 		ItemMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	
-
 		// 스피어 속성 설정
 		AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
@@ -203,7 +203,6 @@ void AItem::SetItemProperties(EItemState State)
 		CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		
-
 		break;
 	case EItemState::EIS_Falling:
 		// 아이템 속성 변경
@@ -212,20 +211,16 @@ void AItem::SetItemProperties(EItemState State)
 		ItemMesh->SetVisibility(true);
 		ItemMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 		ItemMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-		ItemMesh->SetCollisionResponseToChannel(
-			ECollisionChannel::ECC_WorldStatic,ECollisionResponse::ECR_Block);
-		ItemMesh->SetCollisionResponseToChannel(
-			ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
+		ItemMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic,ECollisionResponse::ECR_Block);
+		ItemMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Block);
 		
 		// 스피어 속성 설정
 		AreaSphere->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		AreaSphere->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 		
-
 		//박스 콜리전 설정
 		CollisionBox->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
-		
+		CollisionBox->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);	
 
 		break;
 	case EItemState::EIS_Max:
@@ -244,7 +239,6 @@ void AItem::FinishInterping()
 		Character->IncrementInterpLocItemCount(InterpLocIndex, -1);
 		Character->GetPickupItem(this);
 		Character->UnHighlightInventorySlot();
-
 	}
 	//스케일 정상적으로 설정
 	SetActorScale3D(FVector(1.f));
@@ -253,7 +247,6 @@ void AItem::FinishInterping()
 	bCanChangeCustomDepth = true;
 	DisableCustomDepth();
 
-	
 }
 
 // Called every frame
@@ -292,20 +285,14 @@ void AItem::ItemInterp(float DeltaTime)
 
 		const FVector CurrentLocation = GetActorLocation();
 		//x값 보간
-		const float InterpXValue = FMath::FInterpTo(
-			CurrentLocation.X, 
-			CameraInterpLocation.X,
-			DeltaTime,
-			30.f);
+		const float InterpXValue = FMath::FInterpTo(CurrentLocation.X,  CameraInterpLocation.X, DeltaTime, 30.f);
 		//Y값 보간
-		const float InterpYValue = FMath::FInterpTo(
-			CurrentLocation.Y,
-			CameraInterpLocation.Y,
-			DeltaTime,
-			30.f);
+		const float InterpYValue = FMath::FInterpTo(CurrentLocation.Y, CameraInterpLocation.Y, DeltaTime, 30.f);
+		
 		// X ,Y 아이템 위치 보간 값
 		ItemLocation.X = InterpXValue;
 		ItemLocation.Y = InterpYValue;
+
 		//초기위치에 z곡선값 위치를 더해줌
 		ItemLocation.Z += CurveValue * DeltaZ;
 		SetActorLocation(ItemLocation, true, nullptr, ETeleportType::TeleportPhysics);
@@ -336,10 +323,7 @@ FVector AItem::GetInterpLocation()
 
 	case EItemType::EIT_Weapon :
 		return Character->GetInterpLocation(0).SceneComponent->GetComponentLocation();
-
 		break;
-	
-
 	}
 	return FVector();
 }
@@ -373,7 +357,6 @@ void AItem::EnableCustomDepth()
 	{
 		ItemMesh->SetRenderCustomDepth(true);
 	}
-	
 }
 
 void AItem::DisableCustomDepth()
@@ -381,8 +364,7 @@ void AItem::DisableCustomDepth()
 	if (bCanChangeCustomDepth)
 	{
 		ItemMesh->SetRenderCustomDepth(false);
-	}
-	
+	}	
 }
 
 void AItem::InitializeCustomDepth()
@@ -392,7 +374,13 @@ void AItem::InitializeCustomDepth()
 
 void AItem::OnConstruction(const FTransform& Transform)
 {
-	
+	Super::OnConstruction(Transform);
+
+	InitializeFromRarityTable();
+}
+
+void AItem::InitializeFromRarityTable()
+{
 	//아이템 데이터 테이블 읽어옴
 
 	//아이템 데이터 테이블 경로 
@@ -405,21 +393,21 @@ void AItem::OnConstruction(const FTransform& Transform)
 		FItemRarityTable* RarityRow = nullptr;
 		switch (ItemRarity)
 		{
-			case EItemRariy::EIR_Damaged:
-				RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Damaged"), TEXT(""));
-				break;
-			case EItemRariy::EIR_Common:
-				RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Common"), TEXT(""));
-				break;
-			case EItemRariy::EIR_Uncommon:
-				RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Uncommon"), TEXT(""));
-				break;
-			case EItemRariy::EIR_Rare:
-				RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Rare"), TEXT(""));
-				break;
-			case EItemRariy::EIR_Legendary:
-				RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Legendary"), TEXT(""));
-				break;
+		case EItemRariy::EIR_Damaged:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Damaged"), TEXT(""));
+			break;
+		case EItemRariy::EIR_Common:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Common"), TEXT(""));
+			break;
+		case EItemRariy::EIR_Uncommon:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Uncommon"), TEXT(""));
+			break;
+		case EItemRariy::EIR_Rare:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Rare"), TEXT(""));
+			break;
+		case EItemRariy::EIR_Legendary:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Legendary"), TEXT(""));
+			break;
 
 		}
 		if (RarityRow)
@@ -435,13 +423,6 @@ void AItem::OnConstruction(const FTransform& Transform)
 			}
 		}
 	}
-	/*if (MaterialInstance)
-	{
-		DynamicMaterialInstance = UMaterialInstanceDynamic::Create(MaterialInstance, this);
-		DynamicMaterialInstance->SetVectorParameterValue(TEXT("FresnelColor"), GlowColor);
-		ItemMesh->SetMaterial(MatrialIndex, DynamicMaterialInstance);
-		EnableGlowMaterial();
-	}*/
 }
 
 void AItem::EnableGlowMaterial()
@@ -521,11 +502,7 @@ void AItem::StartPulseTimer()
 {
 	if (ItemState == EItemState::EIS_Pickup)
 	{
-		GetWorldTimerManager().SetTimer(
-			PulseTimer,
-			this,
-			&AItem::ResetPulseTimer,
-			PulseCurvetime);
+		GetWorldTimerManager().SetTimer(PulseTimer,this,&AItem::ResetPulseTimer,PulseCurvetime);
 	}
 }
 
@@ -550,10 +527,7 @@ void AItem::StartItemCurve(AMyCharacter* Char, bool bForcePlaySound)
 	SetItemState(EItemState::EIS_EquipInterping);
 	bInterping = true;
 	GetWorldTimerManager().ClearTimer(PulseTimer);
-	GetWorldTimerManager().SetTimer(
-		ItemInterpTimer,
-		this, &AItem::FinishInterping,
-		ZCurveTime);
+	GetWorldTimerManager().SetTimer(ItemInterpTimer,this, &AItem::FinishInterping,ZCurveTime);
 
 	//초기 Yaw 카메라
 	const float CameraRotationYaw = Character->GetCamera()->GetComponentRotation().Yaw;

@@ -106,13 +106,18 @@ public:
 	AWeapon();
 
 	virtual void Tick(float DeltaTiem) override;
+	void KeepWeapon();
 protected:
 	
 	void StopFalling();
 
 	virtual void OnConstruction(const FTransform& Transform) override;
 
+	void InitializeFromWeaponTable();
+
 	virtual void BeginPlay() override;
+
+	void HideBoneByName();
 
 	void FinishMovingSlide();
 	void UpdateSlideDisplacement();
@@ -221,14 +226,16 @@ private:
 	float HeadShotDamae;
 public:
 	void ThrowWeapon();
-	FORCEINLINE int32 GetAmmo() const { return Ammo; }
-	FORCEINLINE int32 GetMagazineCapacity() const { return MagzineCapacity; }
 	//총을 쏠때 캐릭터 클래스를 부름 ,총알 감소
 	void DecremntAmmo();
-
-	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
 	void SetWeaponType(EWeaponType Weapon) { WeaponType = Weapon; }
+	void StartSlideTimer();
+	void ReloadAmmo(int32 Amount);
+	bool ClipIsFull();
 
+	FORCEINLINE int32 GetAmmo() const { return Ammo; }
+	FORCEINLINE int32 GetMagazineCapacity() const { return MagzineCapacity; }
+	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
 	FORCEINLINE EAmmoType GetAmmoType() const { return AmmoType; }
 	FORCEINLINE FName GetReloadMontageSecion() const { return ReloadMontageSecion; }
 	FORCEINLINE void SetReloadMontageSecion(FName Name) { ReloadMontageSecion = Name; }
@@ -239,11 +246,5 @@ public:
 	FORCEINLINE bool GetAutomatic() const { return bAutomatic; }
 	FORCEINLINE float GetDamage() const {return Damage; }
 	FORCEINLINE float GetHeadShotDamage() const { return HeadShotDamae; }
-		
-	void StartSlideTimer();
-	void ReloadAmmo(int32 Amount);
-
 	FORCEINLINE void SetMovingClip(bool Move) { bMovingClip = Move; }
-
-	bool ClipIsFull();
 };

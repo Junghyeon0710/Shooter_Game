@@ -16,10 +16,6 @@ public:
 	// Sets default values for this actor's properties
 	AExplosive();
 
-protected:
-
-	virtual void BeginPlay() override;
-
 private:
 
 	/** 맞았을 때 파티클*/

@@ -21,13 +21,6 @@ AExplosive::AExplosive()
 	OverlapShere->SetupAttachment(RootComponent);
 }
 
-// Called when the game starts or when spawned
-void AExplosive::BeginPlay()
-{
-	Super::BeginPlay();
-	
-}
-
 void AExplosive::BulletHit_Implementation(FHitResult HitResult, AActor* Shooter, AController* ShooterController)
 {
 	if (ExplosiveSound)

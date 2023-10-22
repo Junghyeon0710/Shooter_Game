@@ -14,28 +14,38 @@ void AWeapon::Tick(float DeltaTiem)
 	Super::Tick(DeltaTiem);
 
 
-	//무기를 유지
-	if (GetItemState() == EItemState::EIS_Falling && bFalling)
-	{
-		const FRotator MeshRotation(0.f, GetItemMesh()->GetComponentRotation().Yaw, 0.f);
-		GetItemMesh()->SetWorldRotation(MeshRotation, false, nullptr, ETeleportType::TeleportPhysics);
-
-	}
+	KeepWeapon();
 
 	UpdateSlideDisplacement();
 }
+
 void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
+	HideBoneByName();
+}
+
+void AWeapon::HideBoneByName()
+{
 	if (BoneToHide != FName(""))
 	{
-		GetItemMesh()->HideBoneByName(BoneToHide,EPhysBodyOp::PBO_None);
+		GetItemMesh()->HideBoneByName(BoneToHide, EPhysBodyOp::PBO_None);
 	}
 }
 
 void AWeapon::FinishMovingSlide()
 {
 	bMovingSlide = false;
+}
+
+void AWeapon::KeepWeapon()
+{
+	//무기를 유지
+	if (GetItemState() == EItemState::EIS_Falling && bFalling)
+	{
+		const FRotator MeshRotation(0.f, GetItemMesh()->GetComponentRotation().Yaw, 0.f);
+		GetItemMesh()->SetWorldRotation(MeshRotation, false, nullptr, ETeleportType::TeleportPhysics);
+	}
 }
 
 void AWeapon::UpdateSlideDisplacement()
@@ -68,8 +78,7 @@ void AWeapon::ThrowWeapon()
 	GetItemMesh()->AddImpulse(ImpulseDirection);
 
 	bFalling = true;
-	GetWorldTimerManager().SetTimer(
-		ThrowWeaponTimer, this, &AWeapon::StopFalling, ThrowWeaponTime);
+	GetWorldTimerManager().SetTimer(ThrowWeaponTimer, this, &AWeapon::StopFalling, ThrowWeaponTime);
 
 	EnableGlowMaterial();
 }
@@ -89,11 +98,7 @@ void AWeapon::DecremntAmmo()
 void AWeapon::StartSlideTimer()
 {
 	bMovingSlide = true;
-	GetWorldTimerManager().SetTimer(
-		SlideTimer,
-		this,
-		&AWeapon::FinishMovingSlide,
-		SlideDisplacementTime
+	GetWorldTimerManager().SetTimer(SlideTimer,this,&AWeapon::FinishMovingSlide,SlideDisplacementTime
 	);
 }
 
@@ -119,8 +124,14 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 {
 	Super::OnConstruction(Transform);
 	
+	InitializeFromWeaponTable();
+	
+}
+
+void AWeapon::InitializeFromWeaponTable()
+{
 	const FString WeaponTablePath = TEXT("/Script/Engine.DataTable'/Game/DataTable/DT_WeaponDataTable.DT_WeaponDataTable'");
-	UDataTable* WeaponTableObject = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),nullptr, *WeaponTablePath));
+	UDataTable* WeaponTableObject = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(), nullptr, *WeaponTablePath));
 
 	if (WeaponTableObject)
 	{
@@ -128,7 +139,7 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 		switch (WeaponType)
 		{
 		case EWeaponType::EWT_SubmachineGun:
-			WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("SubMachineGun"),TEXT(""));
+			WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("SubMachineGun"), TEXT(""));
 			break;
 		case EWeaponType::EWT_AssaultRifle:
 			WeaponDataRow = WeaponTableObject->FindRow<FWeaponDataTable>(FName("AssaultRifle"), TEXT(""));
@@ -147,7 +158,7 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 			SetPickupSound(WeaponDataRow->PickupSound);
 			SetEquipSound(WeaponDataRow->EquipSound);
 			GetItemMesh()->SetSkeletalMesh(WeaponDataRow->ItemMesh);
-			SetItemName(WeaponDataRow->ItemName); 
+			SetItemName(WeaponDataRow->ItemName);
 			SetIconItem(WeaponDataRow->InventoryIcon);
 			SetAmmoIcon(WeaponDataRow->AmmoIcon);
 
@@ -184,6 +195,5 @@ void AWeapon::OnConstruction(const FTransform& Transform)
 			EnableGlowMaterial();
 		}
 	}
-	
 }
 

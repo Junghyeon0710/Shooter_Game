@@ -80,6 +80,8 @@ protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
+	void HidPickupWidget();
+
 	UFUNCTION()
 	void OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
@@ -106,6 +108,8 @@ protected:
 	virtual void InitializeCustomDepth();
 
 	virtual void OnConstruction(const FTransform& Transform) override;
+
+	void InitializeFromRarityTable();
 
 	void EnableGlowMaterial();
 
