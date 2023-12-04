@@ -1,19 +1,5 @@
-
-
-// Fill out your copyright notice in the Description page of Project Settings.
-
-#include "Blueprint/UserWidget.h"
-
-
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "PlayerController/MyPlayerController.h"
-
-AMyPlayerController::AMyPlayerController()
-{
-
-}
+#include "Blueprint/UserWidget.h"
 
 void AMyPlayerController::BeginPlay()
 {

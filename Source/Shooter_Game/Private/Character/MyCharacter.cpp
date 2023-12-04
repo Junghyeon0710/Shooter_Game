@@ -402,7 +402,7 @@ void AMyCharacter::HandleBulletHitResult(FHitResult& HitResult)
 		}
 		if (ImpactParticle) //히트지점 파티클
 		{
-			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticle, BeamHitReuslt.Location);
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ImpactParticle, HitResult.Location);
 		}
 	}
 }
