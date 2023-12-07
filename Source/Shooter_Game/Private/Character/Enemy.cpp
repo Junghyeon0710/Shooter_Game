@@ -310,15 +310,17 @@ void AEnemy::Die()
 
 	if (EnemyController)
 	{
-		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("Dead"),true);
+		EnemyController->GetBlackboardComponent()->SetValueAsBool(FName("Dead"), true);
 		EnemyController->StopMovement();
 	}
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void AEnemy::FinishDeath()
 {
 	GetMesh()->bPauseAnims = true;
-	SetLifeSpan(3.f);
+	SetLifeSpan(6.f);
 }
 
 void AEnemy::SetupBehaviorTree()
