@@ -1,4 +1,4 @@
-  // Fill out your copyright notice in the Description page of Project Settings.
+// Fill out your copyright notice in the Description page of Project Settings.
 
 
 #include "Character/MyCharacter.h"
@@ -31,7 +31,7 @@ AMyCharacter::AMyCharacter() :
 	BaseTurnRate(45.f),
 	BaseLookUpRate(45.f)
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("Spring Arm"));
@@ -41,7 +41,7 @@ AMyCharacter::AMyCharacter() :
 	SpringArm->SocketOffset = FVector(0.5f, 50.f, 70.f);
 
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(SpringArm,USpringArmComponent::SocketName);
+	Camera->SetupAttachment(SpringArm, USpringArmComponent::SocketName);
 	Camera->bUsePawnControlRotation = false;
 
 	// 컴토롤러가 회전할떄 카메라만 움직이기
@@ -93,8 +93,8 @@ void AMyCharacter::BeginPlay()
 	InitializeAmmoMap();
 
 	//보간 구조체 배열에 저장 및 초기화
-	InitializeInterpLocation();	
-	
+	InitializeInterpLocation();
+
 }
 
 // Called every frame
@@ -102,16 +102,16 @@ void AMyCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	//카메라 줌 보간 
-	CameraIntrerpZoom(DeltaTime); 
+	CameraIntrerpZoom(DeltaTime);
 	// 조준했을때 화면 돌아가는거 속도 조절 
 	SetLookRates();
 
 	//크로스헤어 퍼짐 계산
 	CalculateCrosshairSpread(DeltaTime);
-	
+
 	//스피어에 겹친 아이템이 있거나 0보다 많으면
 	TraceForItems();
-	
+
 	InterpCapsuleHalfHeight(DeltaTime);
 }
 
@@ -167,7 +167,7 @@ void AMyCharacter::GrabClip()
 
 	/** 잡기 시작할 떄 트랜스폼*/
 	ClipTransForm = EquipeedWeapon->GetItemMesh()->GetBoneTransform(ClipBoneIndex);
-	
+
 	FAttachmentTransformRules AttachmentRules(EAttachmentRule::KeepRelative, true);
 	HandSceneCOmponet->AttachToComponent(GetMesh(), AttachmentRules, FName(TEXT("Hand_L")));
 	HandSceneCOmponet->SetWorldTransform(ClipTransForm);
@@ -474,8 +474,8 @@ void AMyCharacter::Look(const FInputActionValue& Value)
 	}
 	if (Controller != nullptr)
 	{
-		AddControllerYawInput(LookAxisVector.X* TurnScaleFactor);
-		AddControllerPitchInput(LookAxisVector.Y* LookUpScaleFactor);
+		AddControllerYawInput(LookAxisVector.X * TurnScaleFactor);
+		AddControllerPitchInput(LookAxisVector.Y * LookUpScaleFactor);
 	}
 }
 
@@ -538,7 +538,7 @@ bool AMyCharacter::GetBeamEndLocation(const FVector& MuzzleSocketLocation, FHitR
 	//두번째 라인트레이스 총위치에서			
 	const FVector WeaponTraceStart = MuzzleSocketLocation;
 	const FVector StartToEnd = OutBeamLocation - MuzzleSocketLocation; //시작부터 끝에 거리는 끝에서 처음 거리를 뺴면된다.
-	const FVector WeaponTraceEnd = MuzzleSocketLocation + StartToEnd *1.25;
+	const FVector WeaponTraceEnd = MuzzleSocketLocation + StartToEnd * 1.25;
 	GetWorld()->LineTraceSingleByChannel(OutHitResult, WeaponTraceStart, WeaponTraceEnd, ECollisionChannel::ECC_Visibility
 	);
 
@@ -570,10 +570,10 @@ void AMyCharacter::SelectButtonPressed()
 	if (CombatState != ECombatState::ECS_Unoccupied) return;
 	if (TraceHitItem)
 	{
-		TraceHitItem->StartItemCurve(this,true);
+		TraceHitItem->StartItemCurve(this, true);
 		TraceHitItem = nullptr;
 	}
-} 
+}
 
 void AMyCharacter::ReloadButtonPressed()
 {
@@ -583,7 +583,7 @@ void AMyCharacter::ReloadButtonPressed()
 void AMyCharacter::ReloadWeapon()
 {
 	if (CombatState != ECombatState::ECS_Unoccupied) return;
-	
+
 	if (EquipeedWeapon == nullptr) return;
 
 	// 맞는 탄약이 있는지 체크 && 탄약이 안 꽉찼는지
@@ -656,11 +656,11 @@ void AMyCharacter::FKeyPressed()
 
 void AMyCharacter::Key1Pressed()
 {
-	
+
 	if (EquipeedWeapon->GetSlotIndex() == 1) return;
 
 	ExchangeInventoryIrems(EquipeedWeapon->GetSlotIndex(), 1);
-	
+
 }
 
 void AMyCharacter::Key2Pressed()
@@ -754,9 +754,11 @@ void AMyCharacter::CalculateCrosshairSpread(float DeltaTime)
 	FVector2D VelocityMultiplierRange(0.f, 1.f);
 	FVector Velocity = GetVelocity();
 	Velocity.Z = 0.f;
-	
+
+	//입력값이 0,600 아웃값에 0,1 값이 속도면 속도에 비율을 아웃값에 맞춰서 반환
+	// 값이 만약 150이면 입력값의 4분의 1이므로 출력값으로 매핑해서 하면 0.25가 나옴 출력값에서 클램팽됨
 	//[Input:Range] inclusive로 고정된 주어진 값에 대해 [Output:Range] Inclusive에서 해당 백분율을 반환합니다.
-	CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped(WalkSpeddRange, VelocityMultiplierRange,Velocity.Size());
+	CrosshairVelocityFactor = FMath::GetMappedRangeValueClamped(WalkSpeddRange, VelocityMultiplierRange, Velocity.Size());
 
 	// 공중에 있을떄 크로스 헤어
 	if (GetCharacterMovement()->IsFalling()) //공중에 있나
@@ -771,25 +773,26 @@ void AMyCharacter::CalculateCrosshairSpread(float DeltaTime)
 	}
 
 	//크로스헤어 조준중일때 계산
+
 	if (bAiming) //조준중인가
 	{
 		//십자선 축소
-		CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.6f,DeltaTime,30.f);
+		CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.6f, DeltaTime, 30.f);
 	}
 	else // 조준중이 아니면
 	{
 		//십자선 복구
-		CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.f,DeltaTime,30.f);
+		CrosshairAimFactor = FMath::FInterpTo(CrosshairAimFactor, 0.f, DeltaTime, 30.f);
 	}
 
 	//0.05초뒤에 참
 	if (bFiringBullet)
 	{
-		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor,0.3f, DeltaTime, 60.f);
+		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor, 0.3f, DeltaTime, 60.f);
 	}
 	else
 	{
-		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor,0.f, DeltaTime, 60.f);
+		CrosshairShootingFactor = FMath::FInterpTo(CrosshairShootingFactor, 0.f, DeltaTime, 60.f);
 	}
 
 	CrosshairSpreadMultiplire = 0.5f + CrosshairVelocityFactor + CrosshairInAirFactor - CrosshairAimFactor + CrosshairShootingFactor;
@@ -800,7 +803,7 @@ void AMyCharacter::StartCrosshairBulletFire()
 	bFiringBullet = true;
 
 	//0.05초뒤에 FinishCrosshairBulletFire함수를 불러옴
-	GetWorldTimerManager().SetTimer(CrosshairShootTimer,this, &AMyCharacter::FinishCrosshairBulletFire, ShootTimeDuration);
+	GetWorldTimerManager().SetTimer(CrosshairShootTimer, this, &AMyCharacter::FinishCrosshairBulletFire, ShootTimeDuration);
 }
 
 void AMyCharacter::FinishCrosshairBulletFire()
@@ -813,7 +816,7 @@ void AMyCharacter::FireButtonPressed()
 {
 	bFireButtonPressed = true;
 	Fire();
-	
+
 }
 
 void AMyCharacter::FireButtonReleased()
@@ -826,8 +829,8 @@ void AMyCharacter::StartFireTimer()
 	if (EquipeedWeapon == nullptr) return;
 	CombatState = ECombatState::ECS_FireTimerInProgress;
 
-	GetWorldTimerManager().SetTimer(AutoFireTimer,this,&AMyCharacter::AutoFireReset,EquipeedWeapon->GetAutoFireRate());
-	
+	GetWorldTimerManager().SetTimer(AutoFireTimer, this, &AMyCharacter::AutoFireReset, EquipeedWeapon->GetAutoFireRate());
+
 }
 
 void AMyCharacter::AutoFireReset()
@@ -837,7 +840,7 @@ void AMyCharacter::AutoFireReset()
 	if (EquipeedWeapon == nullptr) return;
 	if (WeaponHasAmmo())
 	{
-		if (bFireButtonPressed&& EquipeedWeapon->GetAutomatic())
+		if (bFireButtonPressed && EquipeedWeapon->GetAutomatic())
 		{
 			Fire();
 		}
@@ -847,7 +850,7 @@ void AMyCharacter::AutoFireReset()
 		//무기 재장전
 		ReloadWeapon();
 	}
-	
+
 }
 
 bool AMyCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHitLocation)
@@ -867,16 +870,16 @@ bool AMyCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHi
 
 	//십자선 방향과 위치 파악
 	//화면 공간 위치를 나타내는 FVector2D를 세계 공간 위치를 나타내는 FVector로 변환
-	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(UGameplayStatics::GetPlayerController(this, 0),CrosshairLocation,	CrosshairWorldPosition,CrosshairWorldDirection);
+	bool bScreenToWorld = UGameplayStatics::DeprojectScreenToWorld(UGameplayStatics::GetPlayerController(this, 0), CrosshairLocation, CrosshairWorldPosition, CrosshairWorldDirection);
 
 	if (bScreenToWorld)
 	{
 		const FVector Start = CrosshairWorldPosition;
-		const FVector End = Start+ CrosshairWorldDirection * 50'000.f;
+		const FVector End = Start + CrosshairWorldDirection * 50'000.f;
 		OutHitLocation = End;
 
 		//크로스헤어로 트레이스 추적
-		GetWorld()->LineTraceSingleByChannel(OutHitResult,Start, End, ECollisionChannel::ECC_Visibility);
+		GetWorld()->LineTraceSingleByChannel(OutHitResult, Start, End, ECollisionChannel::ECC_Visibility);
 		if (OutHitResult.bBlockingHit)
 		{
 			OutHitLocation = OutHitResult.Location;
@@ -888,7 +891,7 @@ bool AMyCharacter::TraceUnderCrosshairs(FHitResult& OutHitResult, FVector& OutHi
 
 void AMyCharacter::TraceForItems()
 {
-	if(bShouldTraceForItems)
+	if (bShouldTraceForItems)
 	{
 		FHitResult ItemTraceResult;
 		FVector HitLocation;
@@ -916,7 +919,7 @@ AWeapon* AMyCharacter::SpawnDefaultWeapon()
 	return nullptr;
 }
 
-void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip , bool bSwapping)
+void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip, bool bSwapping)
 {
 	if (WeaponToEquip)
 	{
@@ -927,13 +930,13 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip , bool bSwapping)
 			//무기를 오른쪽 소켓에 붙임
 			HandSocket->AttachActor(WeaponToEquip, GetMesh());
 		}
-		
+
 		if (EquipeedWeapon == nullptr)
 		{
 			//장착돤 아이넴이 없다.
 			EquipItemDelegate.Broadcast(-1, WeaponToEquip->GetSlotIndex());
 		}
-		else if(!bSwapping)
+		else if (!bSwapping)
 		{
 			EquipItemDelegate.Broadcast(EquipeedWeapon->GetSlotIndex(), WeaponToEquip->GetSlotIndex());
 		}
@@ -951,7 +954,7 @@ void AMyCharacter::DropWeapon()
 	{
 		FDetachmentTransformRules DetachmentTransformRules(EDetachmentRule::KeepWorld, true);
 		EquipeedWeapon->GetItemMesh()->DetachFromComponent(DetachmentTransformRules);
-	
+
 		EquipeedWeapon->SetItemState(EItemState::EIS_Falling);
 		EquipeedWeapon->ThrowWeapon();
 	}
@@ -966,7 +969,7 @@ void AMyCharacter::SwapWeapon(AWeapon* WeaponToSwap)
 	}
 
 	DropWeapon();
-	EquipWeapon(WeaponToSwap,true);
+	EquipWeapon(WeaponToSwap, true);
 	TraceHitItem = nullptr;
 	TraceHitItemLastFrame = nullptr;
 }
@@ -990,7 +993,7 @@ void AMyCharacter::PlayFireSound()
 	//사운드 플레이
 	if (EquipeedWeapon->GetFireSound())
 	{
-		UGameplayStatics::PlaySound2D(this,EquipeedWeapon->GetFireSound());
+		UGameplayStatics::PlaySound2D(this, EquipeedWeapon->GetFireSound());
 	}
 
 }
@@ -1061,12 +1064,12 @@ void AMyCharacter::InterpCapsuleHalfHeight(float DeltaTime)
 		GetCapsuleComponent()->GetScaledCapsuleHalfHeight(),
 		TargetCapsuleHealfHeight,
 		DeltaTime, 20.f);
-	
+
 	// 앉으면 마이너스 값 Mesh를 올려야함
 	const float DeltaCapsuleHalfHeight = InterpHalfHeight - GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	const FVector MeshOffset(0.f, 0.f, -DeltaCapsuleHalfHeight);
 	GetMesh()->AddLocalOffset(MeshOffset);
-	
+
 	GetCapsuleComponent()->SetCapsuleHalfHeight(InterpHalfHeight);
 }
 void AMyCharacter::Aim()
@@ -1151,7 +1154,7 @@ void AMyCharacter::HighlightInventorySlot()
 }
 EPhysicalSurface AMyCharacter::GetSurfaceType()
 {
-	
+
 	FHitResult HitResult;
 	const FVector Start = GetActorLocation();
 	const FVector End = Start + FVector(0.f, 0.f, -400.f);
@@ -1163,7 +1166,7 @@ EPhysicalSurface AMyCharacter::GetSurfaceType()
 		Start, End,
 		ECollisionChannel::ECC_Visibility,
 		QueryParms);
-	
+
 	return UPhysicalMaterial::DetermineSurfaceType(HitResult.PhysMaterial.Get());
 }
 void AMyCharacter::EndStun()
@@ -1175,6 +1178,7 @@ void AMyCharacter::EndStun()
 		Aim();
 	}
 }
+
 void AMyCharacter::Die()
 {
 	bDead = true;
@@ -1184,6 +1188,7 @@ void AMyCharacter::Die()
 		AnimInstance->Montage_Play(DeathMontage);
 	}
 }
+
 void AMyCharacter::FinishDeath()
 {
 	GetMesh()->bPauseAnims = true;
@@ -1192,13 +1197,15 @@ void AMyCharacter::FinishDeath()
 	{
 		DisableInput(PC);
 	}
-	
+
 }
+
 void AMyCharacter::UnHighlightInventorySlot()
 {
 	HighlightIconDelegate.Broadcast(HighlightedSlot, false);
 	HighlightedSlot = -1;
 }
+
 void AMyCharacter::Stun()
 {
 	if (Health <= 0.f) return;
@@ -1211,6 +1218,7 @@ void AMyCharacter::Stun()
 		//Instance->Montage_JumpToSection("Front", HitReactMontage);
 	}
 }
+
 int32 AMyCharacter::GetInterpLocationIndex()
 {
 	int32 LowstIndex = 1;
@@ -1225,6 +1233,7 @@ int32 AMyCharacter::GetInterpLocationIndex()
 	}
 	return LowstIndex;
 }
+
 void AMyCharacter::IncrementInterpLocItemCount(int32 Index, int32 Amount)
 {
 	if (Amount < -1 || Amount>1) return;
@@ -1234,20 +1243,23 @@ void AMyCharacter::IncrementInterpLocItemCount(int32 Index, int32 Amount)
 		InterpLocation[Index].ItemCount += Amount;
 	}
 }
+
 void AMyCharacter::StartPickupSoundTimer()
 {
 	bShouldPlayPickupSound = false;
 	GetWorldTimerManager().SetTimer(
-		PickupSoundTimer, 
+		PickupSoundTimer,
 		this,
 		&AMyCharacter::ResetPicukSoundTimer,
 		PicupSoundResetTime);
 }
+
 void AMyCharacter::StartEquipSoundTimer()
 {
 	bShouldPlayEquipSound = false;
 	GetWorldTimerManager().SetTimer(EqiupSoundTimer, this, &AMyCharacter::ResetEquipSoundTimer, EquipSOundResetTime);
 }
+
 FVector AMyCharacter::GetCameraInterpLocation()
 {
 	const FVector CameraWorldLocation = Camera->GetComponentLocation();
@@ -1255,14 +1267,14 @@ FVector AMyCharacter::GetCameraInterpLocation()
 
 	//CameraWorldLocation + Forward *A + Up *B
 	return CameraWorldLocation + CameraForward * CameraInterpDistance + FVector(0.f, 0.f, CameraInterpElevation);
-	
+
 }
 
 void AMyCharacter::GetPickupItem(AItem* Item)
 {
-	
+
 	Item->PlayEquipSound();
-	
+
 	auto Weapon = Cast<AWeapon>(Item);
 	if (Weapon)
 	{
@@ -1276,7 +1288,7 @@ void AMyCharacter::GetPickupItem(AItem* Item)
 		{
 			SwapWeapon(Weapon);
 		}
-		
+
 	}
 
 	auto Ammo = Cast<AAmmo>(Item);

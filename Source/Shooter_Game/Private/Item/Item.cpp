@@ -278,7 +278,7 @@ void AItem::ItemInterp(float DeltaTime)
 		const FVector CameraInterpLocation = GetInterpLocation();
 		
 		// 아이템에서 카메라까지 보간 위치는 백터 X , Y는 0 카메라 Z위치값이랑 아이템 Z위치 값을 빼줌
-		//그러면 아이템에서 카메라 사이에 Z값을 수할 수 있음
+		//그러면 아이템에서 카메라 사이에 Z값을 구할 수 있음
 		const FVector ItemToCamera = FVector(0.f, 0.f, (CameraInterpLocation - ItemLocation).Z);
 		//커버값 스케일 곱하기
 		const float DeltaZ = ItemToCamera.Size();
