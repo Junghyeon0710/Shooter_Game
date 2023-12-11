@@ -5,6 +5,7 @@
 - IDE : Visual Studio 2022
 - 툴 : C++ , Blueprint 혼합사용
 - 인원 : 개인 개발
+- 개발기간 : 두달 내외
 
 ## 영상
 [![Video Label](https://img.youtube.com/vi/PjArJyTwDXk/0.jpg)](https://www.youtube.com/watch?v=PjArJyTwDXk')
