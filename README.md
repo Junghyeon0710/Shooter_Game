@@ -5,7 +5,7 @@
 - IDE : Visual Studio 2022
 - 툴 : C++ , Blueprint 혼합사용
 - 인원 : 개인 개발
-- 개발기간 : 두달 내외
+- 개발기간 : 두 달 내외
 
 ## 영상
 [![Video Label](https://img.youtube.com/vi/PjArJyTwDXk/0.jpg)](https://www.youtube.com/watch?v=PjArJyTwDXk')
@@ -19,7 +19,7 @@
 >HUD
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/918a09f2-3b5d-4232-9e57-9293ba51be90)
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/630129aa-ef04-4baa-bc55-88a8135631bf)
-#### 움직이거나 쏘면 크로스헤어 반동을 주기 위해 하나의 위젯이 아닌 4개의 Texture을 사용했습니다.
+#### 움직이거나 쏘면 크로스헤어 반동을 주기 위해 하나의 위젯이 아닌 4개의 Texture를 사용했습니다.
 ###### 클릭하시면 확대하실 수 있습니다.
 
 
@@ -75,7 +75,7 @@ void AMyCharacter::CalculateCrosshairSpread(float DeltaTime)
 	CrosshairSpreadMultiplire = 0.5f + CrosshairVelocityFactor + CrosshairInAirFactor - CrosshairAimFactor + CrosshairShootingFactor; //값을 다 더한 후 블루프린트에서 처리
 }
 ```
-#### 캐릭터 상태를 하나하나 따지며 값을 보간하며 더한 후 블루프린트 위에 HUD에서 CrosshairSpreadMultiplire 값을 더해줍니다. Tick함수에서 호출되므로 실시간으로 크로스헤어를 조정할 수 있습니다.
+#### 캐릭터의 상태를 하나하나 따지며 값을 보간하며 더한 후 위에 HUD블루프린트에서 CrosshairSpreadMultiplire 값을 더해줍니다. Tick함수에서 호출되므로 실시간으로 크로스헤어를 조정할 수 있습니다.
 
 >인벤토리
 - 블루프린트에서 함수 바인딩을 통해서 맞는 Image를 넣도록 했습니다.
@@ -136,7 +136,7 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip, bool bSwapping)
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/2fd94655-ce10-4cfb-aef8-346996eac278)
 - 해당 델리게이트에 함수를 바인딩했습니다
 - 함수는 간단하게 무기를 장착하면 현재 무기의 적용되있는 애니메이션을 Reverse Animation해서 원래 위치로 돌려줍니다.
-- 그런다음에 장착된 무기에는 애니메이션을 플레이해서 장착된 무기를 알려주는 함수입니다.
+- 그런다음에 장착된 무기슬롯에는 애니메이션을 플레이해서 장착된 무기를 알려주는 함수입니다.
 
 ## CharterAnim
 - Epic Games Animation Starter Pack사용
@@ -423,8 +423,8 @@ void AWeapon::InitializeFromWeaponTable()
 
 ## Weapon AnimBP
 - 게임안에서 무기 장전할 때 무기 클립이 가만히 있어서 게임이 현실감이 떨어졌습니다
-- 그래서 캐릭터에 Scene 하나 만든 후 클립을 꺼내오고 뺴는 손인 왼쪽 손에 붙여줬습니다.
-- 붙여준 후 캐릭터가 장전을 할 때 무기의 클립의 트랜스폼을 왼쪽손에 위치로 변경해 장전할 때 손으로 빼가고 다시 끼는것처럼 구현했습니다.
+- 그래서 캐릭터에 SceneComponet 하나 만든 후 클립을 꺼내오고 빼는 손인 왼쪽 손에 붙여줬습니다.
+- 붙여준 후 캐릭터가 장전을 할 때 무기의 클립 트랜스폼을 왼쪽손에 위치로 변경해 장전할 때 손으로 빼가고 다시 끼는것처럼 구현했습니다.
 
   
 >Weapon AnimBP AnimGraph
