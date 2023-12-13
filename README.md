@@ -142,6 +142,7 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip, bool bSwapping)
 - Belica Animation 사용
 - Lern(달릴떄 기울기),TurnInPlace(제자리에서 일정 Yaw넘으면 제자리턴)기능 구현
 
+#####위에서 아래로 왼쪽에서 오른쪽 순서입니다.
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/46a7b5d1-b706-4f27-b5c4-e358fc291714)
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/904d3697-9deb-4f19-8cca-c39d6d8ec2d6)
 ![캡처1](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/4042df09-01f5-4967-9f8d-896316088a97)
