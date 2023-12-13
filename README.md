@@ -152,7 +152,7 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip, bool bSwapping)
 #### AimOffset,BlendSpace,Layered blend per bone,FABRIK 사용했습니다.
 
 ## Item
-#### 무기 총알등 Item 무스 클래스
+#### 무기 총알등 Item 부모 클래스
 - 등급결정(별갯수)
 - CustomDepth 설정
 
@@ -423,7 +423,7 @@ void AWeapon::InitializeFromWeaponTable()
 
 ## Weapon AnimBp
 - 게임안에서 무기 장전할 때 무기 클립이 가만히 있어서 게임이 현실감이 떨어졌습니다
-- 그래서 캐릭터에 SecenComponet를 하나 만든 후 클립을 꺼내오고 뺴는 손인 왼쪽 손에 붙여줬습니다.
+- 그래서 캐릭터에 Scene 하나 만든 후 클립을 꺼내오고 뺴는 손인 왼쪽 손에 붙여줬습니다.
 - 붙여준 후 캐릭터가 장전을 할 때 무기의 클립의 트랜스폼을 왼쪽손에 위치로 변경해 장전할 때 손으로 빼가고 다시 끼는것처럼 구현했습니다.
 
   
