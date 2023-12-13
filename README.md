@@ -17,8 +17,8 @@
 - 인벤토리 슬롯 관리
 
 >HUD
-![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/4785e727-169f-4e5e-a01f-f07a1ec7ce3b)
-![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/93ded128-ea87-4bee-8a9a-b50d7486feee)
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/918a09f2-3b5d-4232-9e57-9293ba51be90)
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/630129aa-ef04-4baa-bc55-88a8135631bf)
 #### 움직이거나 쏘면 크로스헤어 반동을 주기 위해 하나의 위젯이 아닌 4개의 Texture을 사용했습니다.
 ###### 클릭하시면 확대하실 수 있습니다.
 
@@ -431,3 +431,8 @@ void AWeapon::InitializeFromWeaponTable()
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/8fd9b51a-155e-498e-bda1-b5a91b9f58a5)
 
 ## Enemy
+- 에니메이션은 공격할 때 몽타주로 구현했으며
+- Idle,Walk,Run은 애니메이션 템플릿을 이용 후 블랜드 스페이스 플레이어로 구현 후 각 캐릭터마다 override하는 형식으로 했습니다.
+- 적 행동은 비헤이비어 트리로 구현했습니다.
+>Enemy BehaviorTree
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/701ec6ea-c4bd-4c70-af78-885832fbbc56)
