@@ -18,9 +18,10 @@
 
 >HUD
 ![image](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/89052df8-9d49-4581-8f07-078b6d81432d)
-- ReceiveDrawHUD이벤트를 실행후 뷰포트의 중간값을 저장합니다.
 ![캡처](https://github.com/Junghyeon0710/TangTang/assets/133496610/243e617f-e876-4d33-bc68-385837530d04)
-#### 클릭하시면 확대하실 수 있습니다.
+#### 움직이거나 쏘면 크로스헤어 반동을 주기 위해 4개의 Texture을 사용했습니다.
+###### 클릭하시면 확대하실 수 있습니다.
+
 
 > 크로스헤어 Spread 계산
 ```C++
@@ -74,7 +75,67 @@ void AMyCharacter::CalculateCrosshairSpread(float DeltaTime)
 	CrosshairSpreadMultiplire = 0.5f + CrosshairVelocityFactor + CrosshairInAirFactor - CrosshairAimFactor + CrosshairShootingFactor; //값을 다 더한 후 블루프린트에서 처리
 }
 ```
-#### 상태를 하나하나 따지며 값을 보간하며 더한 후 블루프린트 위에  HUD에서 CrosshairSpreadMultiplire 값을 더해줍니다.
+#### 캐릭터 상태를 하나하나 따지며 값을 보간하며 더한 후 블루프린트 위에 HUD에서 CrosshairSpreadMultiplire 값을 더해줍니다. Tick함수에서 호출되므로 실시간으로 크로스헤어를 조정할 수 있습니다.
+
+>인벤토리
+- 블루프린트에서 함수 바인딩을 통해서 맞는 Image를 넣도록 했습니다.
+- 아래는 하나의 예시와 방법 입니다.
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/506af371-ecfa-412e-8a8b-9036b1dbe0cb)
+#### 외형 브러시를 함수에 바인딩 합니다.
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/56cf19bd-5d16-4720-974b-e4c01c1c4746)
+#### 함수는 각 슬롯마다 인덱스를 가지고 있는데 해당 슬롯 인덱스에 맞는 무기의 정보를 가져와 외형을 변하게 하는 함수입니다.
+>인벤토리 애니메이션
+- 캐릭터가 들고 있는 해당 무기의 인벤토리칸 테두리를 살짝 올려 몇번 무기를 들고있는지 애니메이션을 줬습니다.
+- 캐릭터가 LineTrace로 무기를 보고있을 때 몇번 인벤토리 슬롯에 들어갈지 알려주는 하이라이트 애니메이션을 줬습니다.
+- 아래는 하나의 예시와 방법입니다.
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/fff1ca2b-04bd-41cf-92d0-23520af102e5)
+#### 들고있는 무기를 알려주는 장착 애니메이션과 들어갈 인벤토리 슬롯을 알려주는 하이라이트 애니메이션 적용모습입니다.
+#### 아래는 장착 애니메이션 방법입니다.
+```C++
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipItemDelegate, int32, CurrentSlotIndex, int32, NewSlotIndex);
+
+	UPROPERTY(BlueprintAssignable,Category=Delegate,  meta = (AllowPrivateAccess = "true"))
+	FEquipItemDelegate EquipItemDelegate;
+```
+- 먼저 다이나믹 델리게이트를 선언한 후 UPROPERTY매크로에서 블루트린에서 델리게이트를 할당 할 수 있게 하는 BlueprintAssignable를 추가시켜줍니다.
+- 인자값으로는 현재 들고있는 무기의 Slot인덱스와 다음무기 Slot인덱스를 가집니다.
+> 무기장착 함수입니다.
+```C++
+void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip, bool bSwapping)
+{
+	if (WeaponToEquip)
+	{
+		//핸드 소켓 얻기
+		const USkeletalMeshSocket* HandSocket = GetMesh()->GetSocketByName(FName("RightHandSocket"));
+		if (HandSocket)
+		{
+			//무기를 오른쪽 소켓에 붙임
+			HandSocket->AttachActor(WeaponToEquip, GetMesh());
+		}
+
+		if (EquipeedWeapon == nullptr)
+		{
+			//장착된 아이넴이 없다.
+			EquipItemDelegate.Broadcast(-1, WeaponToEquip->GetSlotIndex());
+		}
+		else if (!bSwapping)
+		{
+			EquipItemDelegate.Broadcast(EquipeedWeapon->GetSlotIndex(), WeaponToEquip->GetSlotIndex());
+		}
+
+		//장착한 무기는 스폰된 무기
+		EquipeedWeapon = WeaponToEquip;
+		//장착한 상태
+		EquipeedWeapon->SetItemState(EItemState::EIS_Equipped);
+	}
+}
+```
+- 해당 델리게이트에 Broadcast를 통해 값을 넣어줍니다.
+- 넣어준 후 아래 블루트린트에서 진행했습니다.
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/2fd94655-ce10-4cfb-aef8-346996eac278)
+- 해당 델리게이트에 함수를 바인딩했습니다
+- 함수는 간단하게 무기를 장착하면 현재 무기의 적용되있는 애니메이션을 Reverse Animation해서 원래 위치로 돌려줍니다.
+- 그런다음에 장착된 무기에는 애니메이션을 플레이해서 장착된 무기를 알려주는 함수입니다.
 
 ## CharacterAnimInstnace
 
