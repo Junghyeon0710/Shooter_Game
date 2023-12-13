@@ -137,7 +137,17 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip, bool bSwapping)
 - 함수는 간단하게 무기를 장착하면 현재 무기의 적용되있는 애니메이션을 Reverse Animation해서 원래 위치로 돌려줍니다.
 - 그런다음에 장착된 무기에는 애니메이션을 플레이해서 장착된 무기를 알려주는 함수입니다.
 
-## CharacterAnimInstnace
+## CharterAnim
+- Epic Games Animation Starter Pack사용
+- Belica Animation 사용
+- Lern(달릴떄 기울기),TurnInPlace(제자리에서 일정 Yaw넘으면 제자리턴)기능 구현
+
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/46a7b5d1-b706-4f27-b5c4-e358fc291714)
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/904d3697-9deb-4f19-8cca-c39d6d8ec2d6)
+![캡처1](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/4042df09-01f5-4967-9f8d-896316088a97)
+![캡처2](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/b423a480-66d7-4507-849b-8288324cb8a5)
+![캡처3](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/e4691676-f07c-4a09-8945-20b2b663ef36)
+#### AimOffset,BlendSpace,Layered blend per bone,FABRIK 사용했습니다.
 
 ## PlayerController
 
