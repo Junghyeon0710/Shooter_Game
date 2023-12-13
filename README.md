@@ -418,10 +418,16 @@ void AWeapon::InitializeFromWeaponTable()
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/d6a638f1-2134-4347-9c5a-9f79545e60fa)
 
 
-#### WeaponTable에서 정보를 가져와 초기화 시켜줬습니다
-#### Item 클래스와 마찬가지로 OnConstruction함수에서 실행했습니다.
+- WeaponTable에서 정보를 가져와 초기화 시켜줬습니다
+- Item 클래스와 마찬가지로 OnConstruction함수에서 실행했습니다.
 
 ## Weapon AnimBp
-- 게임
+- 게임안에서 무기 장전할 때 무기 클립이 가만히 있어서 게임이 현실감이 떨어졌습니다
+- 그래서 캐릭터에 SecenComponet를 하나 만든 후 클립을 꺼내오고 뺴는 손인 왼쪽 손에 붙여줬습니다.
+- 붙여준 후 캐릭터가 장전을 할 때 무기의 클립의 트랜스폼을 왼쪽손에 위치로 변경해 장전할 때 손으로 빼가고 다시 끼는것처럼 구현했습니다.
+
+  
+>Weapon AnimBP AnimGraph
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/8fd9b51a-155e-498e-bda1-b5a91b9f58a5)
 
 ## Enemy
