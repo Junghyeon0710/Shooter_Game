@@ -92,6 +92,7 @@ void AMyCharacter::CalculateCrosshairSpread(float DeltaTime)
 #### 들고있는 무기를 알려주는 장착 애니메이션과 들어갈 인벤토리 슬롯을 알려주는 하이라이트 애니메이션 적용모습입니다.
 #### 아래는 장착 애니메이션 방법입니다.
 ```C++
+Character.h
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FEquipItemDelegate, int32, CurrentSlotIndex, int32, NewSlotIndex);
 
 	UPROPERTY(BlueprintAssignable,Category=Delegate,  meta = (AllowPrivateAccess = "true"))
@@ -142,7 +143,7 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip, bool bSwapping)
 - Belica Animation 사용
 - Lern(달릴떄 기울기),TurnInPlace(제자리에서 일정 Yaw넘으면 제자리턴)기능 구현
 
-#####위에서 아래로 왼쪽에서 오른쪽 순서입니다.
+##### 위에서 아래로 왼쪽에서 오른쪽 순서입니다.
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/46a7b5d1-b706-4f27-b5c4-e358fc291714)
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/904d3697-9deb-4f19-8cca-c39d6d8ec2d6)
 ![캡처1](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/4042df09-01f5-4967-9f8d-896316088a97)
@@ -150,8 +151,107 @@ void AMyCharacter::EquipWeapon(AWeapon* WeaponToEquip, bool bSwapping)
 ![캡처3](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/e4691676-f07c-4a09-8945-20b2b663ef36)
 #### AimOffset,BlendSpace,Layered blend per bone,FABRIK 사용했습니다.
 
-## PlayerController
-
 ## Item
+- 등급결정(별갯수)
+- CustomDepth 설정
+
+>등급결정
+```C++
+void AItem::SetActiveStars()
+{
+	for (int32 i = 0; i <= 5; i++)
+	{
+		ActiveStars.Add(false);
+	}
+
+	switch (ItemRarity)
+	{
+	case EItemRariy::EIR_Damaged:
+		ActiveStars[1] = true;
+		break;
+	case EItemRariy::EIR_Common:
+		ActiveStars[1] = true;
+		ActiveStars[2] = true;
+		break;
+	case EItemRariy::EIR_Uncommon:
+		ActiveStars[1] = true;
+		ActiveStars[2] = true;
+		ActiveStars[3] = true;
+		break;
+	case EItemRariy::EIR_Rare:
+		ActiveStars[1] = true;
+		ActiveStars[2] = true;
+		ActiveStars[3] = true;
+		ActiveStars[4] = true;
+		break;
+	case EItemRariy::EIR_Legendary:
+		ActiveStars[1] = true;
+		ActiveStars[2] = true;
+		ActiveStars[3] = true;
+		ActiveStars[4] = true;
+		ActiveStars[5] = true;
+		break;
+	case EItemRariy::EIR_Max:
+		break;
+	default:
+		break;
+	}
+}
+```
+- 맞는 방법이 있지만 저는 간단하게 Enum으로 등급을 만들고 bool 배열 ActiveStars만들었습니다.
+- 그 다음 별 갯수만큼 true를 넣어주는 방식으로 했습니다.
+- 그런다음 데이터 테이블을 만든 뒤 OnConstruction함수에서 실행하여 등급이 별경될 때 마다 바뀐 정보를 바로 적용시키게 구현했습니다.
+>데이터 테이블 설정
+```C++
+void AItem::InitializeFromRarityTable()
+{
+	//아이템 데이터 테이블 읽어옴
+
+	//아이템 데이터 테이블 경로 
+	FString RarityTablePath(TEXT("/Script/Engine.DataTable'/Game/DataTable/DT_ItemRarityDataTable.DT_ItemRarityDataTable'"));
+	UDataTable* RarityTableObject = Cast<UDataTable>(StaticLoadObject(UDataTable::StaticClass(),
+		nullptr, *RarityTablePath));
+
+	if (RarityTableObject)
+	{
+		FItemRarityTable* RarityRow = nullptr;
+		switch (ItemRarity)
+		{
+		case EItemRariy::EIR_Damaged:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Damaged"), TEXT(""));
+			break;
+		case EItemRariy::EIR_Common:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Common"), TEXT(""));
+			break;
+		case EItemRariy::EIR_Uncommon:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Uncommon"), TEXT(""));
+			break;
+		case EItemRariy::EIR_Rare:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Rare"), TEXT(""));
+			break;
+		case EItemRariy::EIR_Legendary:
+			RarityRow = RarityTableObject->FindRow<FItemRarityTable>(FName("Legendary"), TEXT(""));
+			break;
+
+		}
+		if (RarityRow)
+		{
+			GlowColor = RarityRow->GlowColor;
+			LightColor = RarityRow->LightColor;
+			DarkColor = RarityRow->DarkColor;
+			NumberOfStars = RarityRow->NumberOfStars;
+			IconBackgorund = RarityRow->IconBackground;
+			if (GetItemMesh())
+			{
+				GetItemMesh()->SetCustomDepthStencilValue(RarityRow->CustomDepthStecil);
+			}
+		}
+	}
+}
+```
+#### 이 함수는 OnConstruction함수에서 실행되며 언리얼 에디터에서 엑터의 속성이나 트랜스폼 정보가 변경될 때 호출되는 함수이므로 아이템의 등급이 변경될때마다 테이블 정보를 가져와 설정할 수 있습니다.
+
+## Weapon
+
 
 ## Enemy
