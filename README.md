@@ -19,7 +19,7 @@
 >HUD
 ![image](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/89052df8-9d49-4581-8f07-078b6d81432d)
 ![캡처](https://github.com/Junghyeon0710/TangTang/assets/133496610/243e617f-e876-4d33-bc68-385837530d04)
-#### 움직이거나 쏘면 크로스헤어 반동을 주기 위해 4개의 Texture을 사용했습니다.
+#### 움직이거나 쏘면 크로스헤어 반동을 주기 위해 하나의 위젯이 아닌 4개의 Texture을 사용했습니다.
 ###### 클릭하시면 확대하실 수 있습니다.
 
 
