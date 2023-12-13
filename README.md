@@ -431,8 +431,9 @@ void AWeapon::InitializeFromWeaponTable()
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/8fd9b51a-155e-498e-bda1-b5a91b9f58a5)
 
 ## Enemy
-- 에니메이션은 공격할 때 몽타주로 구현했으며
+- 에니메이션은 공격할 때 몽타주로 구현
 - Idle,Walk,Run은 애니메이션 템플릿을 이용 후 블랜드 스페이스 플레이어로 구현 후 각 캐릭터마다 override하는 형식으로 했습니다.
 - 적 행동은 비헤이비어 트리로 구현했습니다.
+- EnemyBoss는 Enemy액터 태그에 Boss를 넣어 Boss태그를 가진 적을 잡으면 끝나는 방식으로 구현했습니다.
 >Enemy BehaviorTree
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/701ec6ea-c4bd-4c70-af78-885832fbbc56)
