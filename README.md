@@ -17,8 +17,8 @@
 - 인벤토리 슬롯 관리
 
 >HUD
-![image](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/89052df8-9d49-4581-8f07-078b6d81432d)
-![캡처](https://github.com/Junghyeon0710/TangTang/assets/133496610/243e617f-e876-4d33-bc68-385837530d04)
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/4785e727-169f-4e5e-a01f-f07a1ec7ce3b)
+![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/93ded128-ea87-4bee-8a9a-b50d7486feee)
 #### 움직이거나 쏘면 크로스헤어 반동을 주기 위해 하나의 위젯이 아닌 4개의 Texture을 사용했습니다.
 ###### 클릭하시면 확대하실 수 있습니다.
 
