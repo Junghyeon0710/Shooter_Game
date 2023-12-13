@@ -81,7 +81,7 @@ void AMyCharacter::CalculateCrosshairSpread(float DeltaTime)
 - 블루프린트에서 함수 바인딩을 통해서 맞는 Image를 넣도록 했습니다.
 - 아래는 하나의 예시와 방법 입니다.
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/506af371-ecfa-412e-8a8b-9036b1dbe0cb)
-#### 외형 브러시를 함수에 바인딩 합니다.
+#### 외형 브러시를 함수에 바인딩합니다.
 ![캡처](https://github.com/Junghyeon0710/Shooter_Game/assets/133496610/56cf19bd-5d16-4720-974b-e4c01c1c4746)
 #### 함수는 각 슬롯마다 인덱스를 가지고 있는데 해당 슬롯 인덱스에 맞는 무기의 정보를 가져와 외형을 변하게 하는 함수입니다.
 >인벤토리 애니메이션
