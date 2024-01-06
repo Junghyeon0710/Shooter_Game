@@ -3,7 +3,7 @@
 
 - 엔진 : Unreal Engine 5.3
 - IDE : Visual Studio 2022
-- 툴 : C++ , Blueprint 혼합사용
+- 툴 : C++ (80%), Blueprint(20%) 혼합사용
 - 인원 : 개인 개발
 - 개발기간 : 두 달 내외
 
